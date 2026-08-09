@@ -8,9 +8,9 @@ const APP_VERSION = {
   releaseDate: new Date().toISOString(),
   downloadUrl: 'https://gardnerebooks-download.vercel.app',
   changes: [
-    'Fixed homepage background color to red for testing',
-    'OTA update system testing',
-    'Improved user experience'
+    'OTA update system working',
+    'Background update check implemented',
+    'Non-blocking update notifications'
   ],
   forceUpdate: false,
   minVersion: '1.0.0'
