@@ -183,7 +183,6 @@
       {/if}
     </div>
     <div class="header-actions">
-      <button class="download-btn" onclick={() => goto('/download')}>Download App</button>
       <button class="register-btn" onclick={() => goto('/dashboard/register')}>Register User</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>

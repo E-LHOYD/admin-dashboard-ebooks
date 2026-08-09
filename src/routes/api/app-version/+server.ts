@@ -5,7 +5,7 @@ const APP_VERSION = {
   version: '1.0.0',
   versionCode: 1,
   releaseDate: new Date().toISOString(),
-  downloadUrl: 'https://admin-dashboard-xi-nine-5gm5r8ufpa.vercel.app/download/app.apk',
+  downloadUrl: 'https://admin-dashboard-xi-nine-5gm5r8ufpa.vercel.app/download',
   changes: [
     'Initial release with MEGA book reading',
     'Persistent login functionality',
