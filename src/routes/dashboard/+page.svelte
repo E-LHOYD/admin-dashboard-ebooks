@@ -1,14 +1,84 @@
 <script>
   import { auth, db } from '$lib/firebase';
   import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
-  import { signOut } from 'firebase/auth';
+  import { signOut, onAuthStateChanged } from 'firebase/auth';
   import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
 
   // Reactive state variables
   let totalUsers = $state(0);
   let totalBooks = $state(0);
   let activeUsers = $state(0);
   let loading = $state(true);
+  let currentUser = $state(null);
+  let unsubscribe = $state(null);
+
+  // Get user data from Firestore
+  async function getUserData(email) {
+    try {
+      const adminRef = collection(db, 'admin');
+      const q = query(adminRef, where('email', '==', email));
+      const querySnapshot = await getDocs(q);
+      
+      console.log('Admin query snapshot empty:', querySnapshot.empty);
+      console.log('Admin query snapshot size:', querySnapshot.size);
+      
+      if (!querySnapshot.empty) {
+        const adminData = querySnapshot.docs[0].data();
+        console.log('Admin data from Firestore:', adminData);
+        console.log('Username field:', adminData.username);
+        
+        if (adminData.username) {
+          currentUser = { ...currentUser, username: adminData.username };
+        } else {
+          console.log('Username field is missing or empty, using email');
+          currentUser = { ...currentUser, username: adminData.email };
+        }
+      } else {
+        console.log('No admin found with email:', email);
+        // Fallback: get all admins and find matching email
+        console.log('Trying fallback: fetching all admins to find match');
+        const allAdminsSnapshot = await getDocs(adminRef);
+        console.log('All admins count:', allAdminsSnapshot.size);
+        
+        allAdminsSnapshot.docs.forEach((doc) => {
+          const adminData = doc.data();
+          console.log('Admin document:', adminData);
+          console.log('Document email field:', adminData.email);
+          console.log('Document email matches?', adminData.email === email);
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+    }
+  }
+
+  // Set up auth state listener
+  function setupAuthListener() {
+    unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Check if user is an admin
+        const adminRef = collection(db, 'admin');
+        const q = query(adminRef, where('email', '==', user.email));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          // User is not an admin, redirect to home
+          console.log('User is not an admin, redirecting...');
+          await signOut(auth);
+          goto('/');
+          return;
+        }
+        
+        // User is an admin, proceed
+        currentUser = user;
+        await getUserData(user.email);
+      } else {
+        currentUser = null;
+        goto('/');
+      }
+    });
+  }
 
   // Initialize dashboard data
   async function initializeDashboard() {
@@ -90,13 +160,28 @@
 
   
   // Initialize on component mount
-  initializeDashboard();
+  onMount(() => {
+    setupAuthListener();
+    initializeDashboard();
+    
+    // Cleanup on unmount
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  });
 </script>
 
 <div class="dashboard-container">
   <!-- Header -->
   <header class="dashboard-header">
-    <h1>GD Library Dashboard</h1>
+    <div class="header-left">
+      <h1>Gardner E-Books Library Dashboard</h1>
+      {#if currentUser}
+        <p class="user-info">Welcome, {currentUser.username || currentUser.email}</p>
+      {/if}
+    </div>
     <div class="header-actions">
       <button class="register-btn" onclick={() => goto('/dashboard/register')}>Register User</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
@@ -130,14 +215,12 @@
       <h2>Management</h2>
       <div class="management-grid">
         <a href="/dashboard/studentlist" class="management-card">
-          <div class="card-icon">👥</div>
           <h3>Students Management</h3>
           <p>Register and manage student accounts</p>
           <div class="card-stats">{totalUsers} registered students</div>
         </a>
         
         <a href="/dashboard/books" class="management-card">
-          <div class="card-icon">📚</div>
           <h3>Books Management</h3>
           <p>Upload, edit, and manage library books</p>
           <div class="card-stats">{totalBooks} books available</div>
@@ -150,18 +233,37 @@
 <style>
   @import './style.css';
   
+  .dashboard-container {
+    background-color: white;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
   .dashboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
     padding-bottom: 20px;
-    border-bottom: 2px solid #eee;
+    border-bottom: 2px solid #ccc;
+  }
+
+  .header-left {
+    display: flex;
+    flex-direction: column;
   }
 
   .dashboard-header h1 {
-    color: #333;
+    color: #033047;
     margin: 0;
+    font-size: 1.25rem;
+    font-weight: bold;
+  }
+
+  .user-info {
+    color: #666;
+    margin: 5px 0 0 0;
+    font-size: 0.875rem;
   }
 
   .header-actions {
@@ -170,26 +272,91 @@
   }
 
   .register-btn {
-    background: #28a745;
+    background: #033047;
     color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 0.875rem;
+    font-weight: bold;
+    width: auto;
   }
 
   .register-btn:hover {
-    background: #218838;
+    background: #024060;
   }
 
-  
+  .logout-btn {
+    background: white;
+    color: #033047;
+    border: 2px solid #033047;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+    width: auto;
+  }
+
+  .logout-btn:hover {
+    background: #033047;
+    color: white;
+  }
+
+  .loading {
+    text-align: center;
+    font-size: 1rem;
+    color: #033047;
+    padding: 40px;
+  }
+
+  .stats-section {
+    margin-bottom: 40px;
+  }
+
+  .stats-section h2 {
+    color: #033047;
+    font-size: 1rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .stat-card {
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #033047;
+    margin-bottom: 10px;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: #666;
+  }
+
   .management-section {
     margin-bottom: 40px;
   }
 
   .management-section h2 {
-    color: #333;
+    color: #033047;
+    font-size: 1rem;
+    font-weight: bold;
     margin-bottom: 20px;
   }
 
@@ -201,41 +368,41 @@
 
   .management-card {
     background: white;
+    border: 1px solid #ccc;
+    border-radius: 8;
     padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     text-decoration: none;
     color: inherit;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: block;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
   .management-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
-  }
-
-  .card-icon {
-    font-size: 3em;
-    margin-bottom: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    border-color: #033047;
   }
 
   .management-card h3 {
     margin: 0 0 10px 0;
-    color: #333;
+    color: #033047;
+    font-size: 1.125rem;
+    font-weight: bold;
   }
 
   .management-card p {
     color: #666;
     margin: 0 0 15px 0;
+    font-size: 0.875rem;
   }
 
   .card-stats {
     background: #f8f9fa;
-    padding: 8px 12px;
+    padding: 16px 20px;
     border-radius: 6px;
-    font-size: 14px;
-    color: #007bff;
+    font-size: 0.875rem;
+    color: #033047;
     font-weight: 600;
   }
 </style>

@@ -92,8 +92,8 @@
   <div class="w-full max-w-md">
     <!-- Logo/Brand Section -->
     <div class="text-center mb-8">
-      <h1 class="text-2xl font-bold text-gray-900 mb-2">Gardner E-Books Library Portal</h1>
-      <p class="text-gray-600">Admin Login</p>
+      <h1 class="text-xl font-bold text-gray-900 mb-2">Gardner E-Books Library Portal</h1>
+      <p class="text-gray-600 text-sm">Admin Login</p>
     </div>
 
     <!-- Login Card -->
