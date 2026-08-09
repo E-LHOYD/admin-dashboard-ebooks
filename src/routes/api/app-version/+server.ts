@@ -6,7 +6,7 @@ const APP_VERSION = {
   version: '1.0.1',
   versionCode: 2,
   releaseDate: new Date().toISOString(),
-  downloadUrl: null, // Will be set when APK hosting is determined
+  downloadUrl: 'https://gardnerebooks-download.vercel.app',
   changes: [
     'Fixed homepage background color to red for testing',
     'OTA update system testing',
