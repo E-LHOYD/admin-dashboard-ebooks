@@ -17,6 +17,7 @@
 .dashboard-header h1 {
   color: #333;
   margin: 0;
+  font-size: 1.5rem;
 }
 
 .logout-btn {
@@ -46,6 +47,7 @@
 .stats-section h2, .actions-section h2, .students-section h2, .books-section h2 {
   color: #333;
   margin-bottom: 20px;
+  font-size: 1.25rem;
 }
 
 .stats-grid {
@@ -63,7 +65,7 @@
 }
 
 .stat-number {
-  font-size: 2.5em;
+  font-size: 1.5em;
   font-weight: bold;
   color: #007bff;
 }
@@ -177,6 +179,7 @@
   margin-top: 0;
   margin-bottom: 20px;
   color: #333;
+  font-size: 1.25rem;
 }
 
 .form-grid {
