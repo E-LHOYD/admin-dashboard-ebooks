@@ -183,6 +183,7 @@
       {/if}
     </div>
     <div class="header-actions">
+      <button class="download-btn" onclick={() => goto('/download')}>Download App</button>
       <button class="register-btn" onclick={() => goto('/dashboard/register')}>Register User</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
@@ -285,6 +286,22 @@
 
   .register-btn:hover {
     background: #024060;
+  }
+
+  .download-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+    width: auto;
+  }
+
+  .download-btn:hover {
+    background: #218838;
   }
 
   .logout-btn {
