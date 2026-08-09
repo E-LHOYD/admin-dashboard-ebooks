@@ -1,166 +1,90 @@
 <script>
-  import { auth, db, storage } from '$lib/firebase';
+  import { auth, db } from '$lib/firebase';
   import { collection, addDoc } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
-  import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
   import { goto } from '$app/navigation';
+  import { isMegaUrl, MEGA_URL_HINT } from '$lib/mega';
 
   // Reactive state variables
-  let uploading = $state(false);
-  let uploadProgress = $state(0);
+  let saving = $state(false);
   let errorMessage = $state('');
   let successMessage = $state('');
-
-  // Book form data
-  let bookForm = $state({
-    title: '',
-    author: '',
-    detail: '',
-    subject: '',
-    downloadedFrom: '',
-    releaseDate: new Date().toISOString().split('T')[0]
-  });
-
-  // File handling
-  let selectedFile = $state(null);
-  let fileInput = $state();
 
   // Helper function to get today's date
   function getTodayDate() {
     return new Date().toISOString().split('T')[0];
   }
 
-  // Handle file selection
-  function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+  // Book form data.
+  // megaFileUrl is the MEGA share link for the book file. It is REQUIRED:
+  // the mobile app reads books.megaFileUrl to open the reader, and refuses
+  // to open a book without it.
+  let bookForm = $state({
+    title: '',
+    author: '',
+    detail: '',
+    subject: '',
+    downloadedFrom: '',
+    releaseDate: getTodayDate(),
+    megaFileUrl: ''
+  });
 
-    // Validate file type
-    const validTypes = ['application/pdf', 'application/epub+zip', 'text/plain'];
-    if (!validTypes.includes(file.type) && !file.name.match(/\.(pdf|epub|txt)$/i)) {
-      errorMessage = 'Please select a valid file type (PDF, EPUB, or TXT)';
-      return;
-    }
-
-    // Validate file size (50MB max)
-    const maxSize = 50 * 1024 * 1024; // 50MB in bytes
-    if (file.size > maxSize) {
-      errorMessage = 'File size must be less than 50MB';
-      return;
-    }
-
-    selectedFile = file;
-    errorMessage = '';
-  }
-
-  // Upload file to Firebase Storage
-  async function uploadFile() {
-    console.log('📁 Starting file upload process...');
-    
-    if (!selectedFile) {
-      console.log('❌ No file selected for upload');
-      errorMessage = 'Please select a file to upload';
-      return null;
-    }
-
-    console.log('📁 File details:', {
-      name: selectedFile.name,
-      size: selectedFile.size,
-      type: selectedFile.type
-    });
-
-    uploading = true;
-    uploadProgress = 0;
-
-    try {
-      console.log('🗂️ Creating storage reference...');
-      // Create a reference to the file location
-      const storageRef = ref(storage, `books/${Date.now()}_${selectedFile.name}`);
-      console.log('🗂️ Storage ref created:', storageRef);
-      
-      console.log('⬆️ Starting upload to Firebase Storage...');
-      // Upload the file
-      const snapshot = await uploadBytes(storageRef, selectedFile);
-      console.log('✅ Upload completed, snapshot:', snapshot);
-      
-      console.log('🔗 Getting download URL...');
-      // Get the download URL
-      const fileUrl = await getDownloadURL(snapshot.ref);
-      console.log('✅ Download URL obtained:', fileUrl);
-      
-      uploading = false;
-      uploadProgress = 100;
-      return fileUrl;
-    } catch (error) {
-      uploading = false;
-      console.error('❌ Storage upload error:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      errorMessage = `File upload failed: ${error.message}`;
-      return null;
-    }
-  }
-
-
-  // Add new book with text information only
+  // Add new book
   async function addBook(event) {
     event.preventDefault();
-    console.log('=== BOOK SAVE START ===');
-    
+    errorMessage = '';
+    successMessage = '';
+
     // Validate form
     if (!bookForm.title || !bookForm.author || !bookForm.subject) {
-      console.log('❌ Form validation failed');
       errorMessage = 'Please fill in all required fields';
       return;
     }
-    console.log('✅ Form validation passed');
 
-    console.log(' Checking authentication...');
-    console.log('Auth state:', auth.currentUser ? 'User authenticated' : 'No user');
-    console.log('User email:', auth.currentUser?.email);
-    
+    const megaFileUrl = bookForm.megaFileUrl.trim();
+
+    if (!megaFileUrl) {
+      errorMessage = 'A MEGA link is required so the book can be opened in the app. ' + MEGA_URL_HINT;
+      return;
+    }
+
+    if (!isMegaUrl(megaFileUrl)) {
+      errorMessage = 'That does not look like a MEGA file link. ' + MEGA_URL_HINT;
+      return;
+    }
+
     // Check authentication
     if (!auth.currentUser) {
-      console.error('❌ User not authenticated');
-      errorMessage = 'You must be logged in to upload books';
+      errorMessage = 'You must be logged in to add books';
       return;
     }
-    console.log('✅ User authenticated');
 
-    console.log('💾 Preparing Firestore data...');
-    // Add book data to Firestore
     const bookData = {
-      title: bookForm.title,
-      author: bookForm.author,
+      title: bookForm.title.trim(),
+      author: bookForm.author.trim(),
       detail: bookForm.detail,
-      subject: bookForm.subject,
+      subject: bookForm.subject.trim(),
       downloadedFrom: bookForm.downloadedFrom,
-      releaseDate: bookForm.releaseDate
+      releaseDate: bookForm.releaseDate,
+      megaFileUrl
     };
 
-    console.log('📚 Book data to save:', bookData);
-    console.log('🔥 Firestore DB instance:', db);
-    
+    saving = true;
+
     try {
-      console.log('💾 Saving to Firestore...');
       const docRef = await addDoc(collection(db, 'books'), bookData);
-      console.log('✅ Book saved with ID:', docRef.id);
+      console.log('Book saved with ID:', docRef.id, bookData);
     } catch (firestoreError) {
-      console.error('❌ Firestore error:', firestoreError);
-      console.error('Error code:', firestoreError.code);
-      console.error('Error message:', firestoreError.message);
+      console.error('Firestore error:', firestoreError);
       errorMessage = `Failed to save book: ${firestoreError.message}`;
       return;
+    } finally {
+      saving = false;
     }
 
-    console.log('🔄 Resetting form...');
-    // Reset form
     resetForm();
-
-    console.log('✅ Book saved successfully!');
     successMessage = 'Book saved successfully!';
-    errorMessage = '';
-    
+
     // Clear success message after 3 seconds
     setTimeout(() => {
       successMessage = '';
@@ -175,13 +99,11 @@
       detail: '',
       subject: '',
       downloadedFrom: '',
-      releaseDate: getTodayDate()
+      releaseDate: getTodayDate(),
+      megaFileUrl: ''
     };
-    selectedFile = null;
-    if (fileInput) fileInput.value = '';
     errorMessage = '';
     successMessage = '';
-    uploadProgress = 0;
   }
 
   // Logout
@@ -194,14 +116,6 @@
     }
   }
 
-  // Format file size
-  function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
 </script>
 
 <div class="upload-container">
@@ -232,35 +146,21 @@
       {/if}
 
       <form onsubmit={addBook}>
-        <!-- File Upload -->
+        <!-- MEGA link (required) -->
         <div class="form-group">
-          <label for="file-upload" class="file-upload-label">
-            <div class="file-upload-area">
-              {#if selectedFile}
-                <div class="file-info">
-                  <div class="file-icon">📄</div>
-                  <div class="file-details">
-                    <div class="file-name">{selectedFile.name}</div>
-                    <div class="file-size">{formatFileSize(selectedFile.size)}</div>
-                  </div>
-                </div>
-              {:else}
-                <div class="upload-prompt">
-                  <div class="upload-icon">📁</div>
-                  <div>Click to select or drag and drop</div>
-                  <div class="upload-hint">PDF, EPUB, or TXT (Max 50MB)</div>
-                </div>
-              {/if}
-            </div>
-          </label>
-          <input 
-            id="file-upload"
-            type="file" 
-            bind:this={fileInput}
-            onchange={handleFileSelect}
-            accept=".pdf,.epub,.txt,application/pdf,application/epub+zip,text/plain"
-            class="file-input"
+          <label class="field-label" for="mega-url">MEGA link *</label>
+          <input
+            id="mega-url"
+            type="url"
+            placeholder="https://mega.nz/file/XXXXXXXX#key"
+            bind:value={bookForm.megaFileUrl}
+            required
           />
+          <p class="field-hint">
+            Upload the PDF to your MEGA account, choose <strong>Share &rarr; Copy link</strong>
+            (the link must include the decryption key after <code>#</code>), then paste it here.
+            This is saved as <code>megaFileUrl</code> and is what the mobile app opens.
+          </p>
         </div>
 
         <!-- Book Details -->
@@ -318,21 +218,11 @@
           ></textarea>
         </div>
 
-        <!-- Upload Progress -->
-        {#if uploading}
-          <div class="upload-progress">
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: {uploadProgress}%"></div>
-            </div>
-            <div class="progress-text">Uploading... {uploadProgress}%</div>
-          </div>
-        {/if}
-
         <!-- Form Actions -->
         <div class="form-actions">
           <button type="button" class="cancel-btn" onclick={resetForm}>Reset</button>
-          <button type="submit" class="submit-btn" disabled={uploading}>
-            {uploading ? 'Saving...' : 'Save Book'}
+          <button type="submit" class="submit-btn" disabled={saving}>
+            {saving ? 'Saving...' : 'Save Book'}
           </button>
         </div>
       </form>
@@ -342,6 +232,26 @@
 
 <style>
   @import '../style.css';
+
+  .field-label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .field-hint {
+    margin: 6px 0 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #666;
+  }
+
+  .field-hint code {
+    background: #f1f3f5;
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
 
   .upload-container {
     max-width: 800px;
@@ -418,69 +328,17 @@
     border: 1px solid #c3e6cb;
   }
 
-  .file-upload-label {
-    display: block;
-    cursor: pointer;
-    margin-bottom: 20px;
-  }
 
-  .file-upload-area {
-    border: 2px dashed #ddd;
-    border-radius: 8px;
-    padding: 40px 20px;
-    text-align: center;
-    transition: border-color 0.3s ease, background-color 0.3s ease;
-  }
 
-  .file-upload-area:hover {
-    border-color: #007bff;
-    background-color: #f8f9ff;
-  }
 
-  .file-input {
-    display: none;
-  }
 
-  .upload-prompt {
-    color: #666;
-  }
 
-  .upload-icon {
-    font-size: 3em;
-    margin-bottom: 10px;
-  }
 
-  .upload-hint {
-    font-size: 14px;
-    color: #999;
-    margin-top: 5px;
-  }
 
-  .file-info {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    color: #333;
-  }
 
-  .file-icon {
-    font-size: 2em;
-  }
 
-  .file-details {
-    text-align: left;
-  }
 
-  .file-name {
-    font-weight: 600;
-    margin-bottom: 5px;
-  }
 
-  .file-size {
-    font-size: 14px;
-    color: #666;
-  }
 
   .form-grid {
     display: grid;
@@ -513,30 +371,9 @@
     min-height: 100px;
   }
 
-  .upload-progress {
-    margin: 20px 0;
-  }
 
-  .progress-bar {
-    width: 100%;
-    height: 8px;
-    background: #f1f1f1;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 10px;
-  }
 
-  .progress-fill {
-    height: 100%;
-    background: #007bff;
-    transition: width 0.3s ease;
-  }
 
-  .progress-text {
-    text-align: center;
-    font-size: 14px;
-    color: #666;
-  }
 
   .form-actions {
     display: flex;
@@ -586,13 +423,6 @@
       grid-template-columns: 1fr;
     }
     
-    .file-info {
-      flex-direction: column;
-      text-align: center;
-    }
     
-    .file-details {
-      text-align: center;
-    }
   }
 </style>
