@@ -1,12 +1,12 @@
 <script>
   import { onMount } from 'svelte';
+  import { isBookFileUrl } from '$lib/supabase';
 
   // Standalone PDF reader.
   //
-  // The mobile app points a WebView at /reader?url=<mega link>. This page
-  // fetches the decrypted bytes from /api/mega/file and renders them with
-  // pdf.js. It has to render the PDF itself because Android's WebView has no
-  // built-in PDF viewer — handing it a PDF URL directly shows nothing.
+  // The mobile app points a WebView at /reader?url=<storage url>. The page
+  // renders the PDF itself because Android's WebView has no built-in PDF
+  // viewer — handing it a PDF URL directly shows nothing at all.
 
   // pdf.js is bundled rather than pulled from a CDN, so the reader keeps
   // working on networks that block third-party hosts. The `legacy` build is
@@ -50,6 +50,14 @@
       return;
     }
 
+    // Only ever render files from this project's own storage, so the page
+    // cannot be used to load an arbitrary document from another host.
+    if (!isBookFileUrl(fileUrl)) {
+      errorMessage = 'That book link is not recognised.';
+      status = '';
+      return;
+    }
+
     try {
       // Imported here rather than at the top of the module: pdf.js touches
       // browser globals, so it must not be evaluated during server rendering.
@@ -57,12 +65,10 @@
       const workerUrl = (await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default;
       pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
-      status = 'Fetching book from MEGA…';
+      status = 'Fetching book…';
 
-      const loadingTask = pdfjsLib.getDocument({
-        url: `/api/mega/file?url=${encodeURIComponent(fileUrl)}`,
-        withCredentials: false
-      });
+      // Loaded straight from storage: no server-side proxy in the way.
+      const loadingTask = pdfjsLib.getDocument({ url: fileUrl, withCredentials: false });
 
       loadingTask.onProgress = ({ loaded, total }) => {
         if (total) {

@@ -3,13 +3,24 @@
   import { collection, doc, updateDoc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
-  import { isMegaUrl, MEGA_URL_HINT, readerPath } from '$lib/mega';
+  import { uploadBookFile } from '$lib/uploadBook';
+  import {
+    ACCEPTED_EXTENSIONS,
+    formatFileSize,
+    readerPath,
+    validateBookFile
+  } from '$lib/supabase';
 
   // Reactive state variables
   let books = $state([]);
   let loading = $state(true);
   let editingBook = $state(null);
   let errorMessage = $state('');
+  let replacementFile = $state(null);
+  let replacementInput = $state();
+  let saving = $state(false);
+
+  const acceptAttribute = ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(',');
 
   // Helper function to get today's date in YYYY-MM-DD format
   function getTodayDate() {
@@ -23,8 +34,7 @@
       detail: '',
       subject: '',
       downloadedFrom: '',
-      releaseDate: getTodayDate(),
-      megaFileUrl: ''
+      releaseDate: getTodayDate()
     };
   }
 
@@ -49,6 +59,7 @@
   function editBook(book) {
     editingBook = book;
     errorMessage = '';
+    replacementFile = null;
     // Copy only the editable fields. Spreading the whole book would carry the
     // document id into the form and write it back into the document.
     bookForm = {
@@ -57,57 +68,59 @@
       detail: book.detail ?? '',
       subject: book.subject ?? '',
       downloadedFrom: book.downloadedFrom ?? '',
-      releaseDate: book.releaseDate ?? getTodayDate(),
-      megaFileUrl: book.megaFileUrl ?? ''
+      releaseDate: book.releaseDate ?? getTodayDate()
     };
   }
 
   function cancelEdit() {
     editingBook = null;
     bookForm = emptyForm();
+    replacementFile = null;
     errorMessage = '';
   }
 
-  // Update book
+  function handleReplacementSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const problem = validateBookFile(file);
+
+    if (problem) {
+      errorMessage = problem;
+      replacementFile = null;
+      event.target.value = '';
+      return;
+    }
+
+    replacementFile = file;
+    errorMessage = '';
+  }
+
+  // Update book, optionally replacing its file
   async function updateBook(event) {
     event?.preventDefault();
     errorMessage = '';
-
-    const megaFileUrl = bookForm.megaFileUrl.trim();
-
-    if (!megaFileUrl) {
-      errorMessage = 'A MEGA link is required so the book can be opened in the app. ' + MEGA_URL_HINT;
-      return;
-    }
-
-    if (!isMegaUrl(megaFileUrl)) {
-      errorMessage = 'That does not look like a MEGA file link. ' + MEGA_URL_HINT;
-      return;
-    }
+    saving = true;
 
     try {
-      await updateDoc(doc(db, 'books', editingBook.id), { ...bookForm, megaFileUrl });
+      const changes = { ...bookForm };
+
+      if (replacementFile) {
+        const uploaded = await uploadBookFile(replacementFile);
+        changes.fileUrl = uploaded.fileUrl;
+        changes.filePath = uploaded.filePath;
+        changes.fileName = uploaded.fileName;
+        changes.fileSize = uploaded.fileSize;
+      }
+
+      await updateDoc(doc(db, 'books', editingBook.id), changes);
       cancelEdit();
       await loadBooks(); // Refresh data
     } catch (error) {
       console.error('Error updating book:', error);
       errorMessage = 'Could not save: ' + error.message;
-    }
-  }
-
-  // Copy a MEGA link to the clipboard, with a short "Copied" confirmation.
-  let copiedUrl = $state('');
-  let copyTimer;
-
-  async function copyUrl(url) {
-    try {
-      await navigator.clipboard.writeText(url);
-      copiedUrl = url;
-      clearTimeout(copyTimer);
-      copyTimer = setTimeout(() => { copiedUrl = ''; }, 2000);
-    } catch (error) {
-      console.error('Could not copy link:', error);
-      errorMessage = 'Could not copy the link. Select it manually instead.';
+    } finally {
+      saving = false;
     }
   }
 
@@ -170,7 +183,7 @@
               <th>Author</th>
               <th>Subject</th>
               <th>Release Date</th>
-              <th>MEGA URL</th>
+              <th>Book file</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -181,23 +194,17 @@
                 <td>{book.author}</td>
                 <td>{book.subject}</td>
                 <td>{book.releaseDate}</td>
-                <td class="mega-cell">
-                  {#if book.megaFileUrl}
-                    <a
-                      class="mega-url"
-                      href={book.megaFileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      title={book.megaFileUrl}
-                    >{book.megaFileUrl}</a>
-                    <div class="mega-actions">
-                      <a href={readerPath(book.megaFileUrl)} target="_blank" rel="noreferrer">Preview</a>
-                      <button type="button" class="link-btn" onclick={() => copyUrl(book.megaFileUrl)}>
-                        {copiedUrl === book.megaFileUrl ? 'Copied' : 'Copy'}
-                      </button>
+                <td class="file-cell">
+                  {#if book.fileUrl}
+                    <a class="file-name-link" href={book.fileUrl} target="_blank" rel="noreferrer">
+                      {book.fileName || 'Open file'}
+                    </a>
+                    <div class="file-meta">
+                      {#if book.fileSize}<span>{formatFileSize(book.fileSize)}</span>{/if}
+                      <a href={readerPath(book.fileUrl)} target="_blank" rel="noreferrer">Preview</a>
                     </div>
                   {:else}
-                    <span class="file-missing" title="The mobile app cannot open this book until a MEGA link is added">
+                    <span class="file-missing" title="The mobile app cannot open this book until a file is uploaded">
                       No file - not readable in app
                     </span>
                   {/if}
@@ -223,17 +230,30 @@
 
         <form onsubmit={updateBook}>
           <div class="form-group">
-            <label class="field-label" for="edit-mega-url">MEGA link *</label>
+            <label class="field-label" for="edit-file">Book file</label>
+            {#if editingBook.fileUrl}
+              <p class="field-hint current-file">
+                Currently: <a href={editingBook.fileUrl} target="_blank" rel="noreferrer">
+                  {editingBook.fileName || 'uploaded file'}
+                </a>
+                {#if editingBook.fileSize}({formatFileSize(editingBook.fileSize)}){/if}
+              </p>
+            {:else}
+              <p class="field-hint missing-file">
+                No file uploaded yet, so this book cannot be opened in the app.
+              </p>
+            {/if}
             <input
-              id="edit-mega-url"
-              type="url"
-              placeholder="https://mega.nz/file/XXXXXXXX#key"
-              bind:value={bookForm.megaFileUrl}
-              required
+              id="edit-file"
+              type="file"
+              bind:this={replacementInput}
+              onchange={handleReplacementSelect}
+              accept={acceptAttribute}
             />
             <p class="field-hint">
-              Upload the PDF to MEGA, choose Share &rarr; Copy link (keep the key after the
-              <code>#</code>), and paste it here. Saved as <code>megaFileUrl</code>.
+              {replacementFile
+                ? `Will replace the file with ${replacementFile.name} (${formatFileSize(replacementFile.size)}).`
+                : 'Choose a file only if you want to replace the current one.'}
             </p>
           </div>
 
@@ -268,8 +288,10 @@
           </div>
 
           <div class="modal-actions">
-            <button type="button" class="table-btn" onclick={cancelEdit}>Cancel</button>
-            <button type="submit" class="table-btn edit-btn">Save changes</button>
+            <button type="button" class="table-btn" onclick={cancelEdit} disabled={saving}>Cancel</button>
+            <button type="submit" class="table-btn edit-btn" disabled={saving}>
+              {saving ? 'Saving...' : 'Save changes'}
+            </button>
           </div>
         </form>
       </div>
@@ -290,52 +312,46 @@
     margin-bottom: 16px;
   }
 
-  .mega-cell {
-    max-width: 320px;
+  .file-cell {
+    max-width: 280px;
   }
 
-  .mega-url {
+  .file-name-link {
     display: block;
     color: #0f7b3f;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 12px;
-    line-height: 1.4;
-    word-break: break-all;
+    font-weight: 600;
     text-decoration: none;
+    word-break: break-word;
   }
 
-  .mega-url:hover {
+  .file-name-link:hover {
     text-decoration: underline;
   }
 
-  .mega-actions {
+  .file-meta {
     display: flex;
     gap: 10px;
     margin-top: 4px;
     font-size: 12px;
+    color: #666;
   }
 
-  .mega-actions a {
+  .file-meta a {
     color: #007bff;
     text-decoration: none;
   }
 
-  .mega-actions a:hover {
+  .file-meta a:hover {
     text-decoration: underline;
   }
 
-  .link-btn {
-    background: none;
-    border: none;
-    padding: 0;
+  .current-file a {
     color: #007bff;
-    font-size: 12px;
-    font-family: inherit;
-    cursor: pointer;
   }
 
-  .link-btn:hover {
-    text-decoration: underline;
+  .missing-file {
+    color: #b3261e;
+    font-weight: 600;
   }
 
   .file-missing {
@@ -407,11 +423,6 @@
     color: #666;
   }
 
-  .field-hint code {
-    background: #f1f3f5;
-    padding: 1px 4px;
-    border-radius: 3px;
-  }
 
   .modal-actions {
     display: flex;
