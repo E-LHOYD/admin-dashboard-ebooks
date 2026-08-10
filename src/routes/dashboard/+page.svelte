@@ -287,22 +287,6 @@
     background: #024060;
   }
 
-  .download-btn {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-    width: auto;
-  }
-
-  .download-btn:hover {
-    background: #218838;
-  }
-
   .logout-btn {
     background: white;
     color: #033047;

@@ -88,7 +88,7 @@
   }
 </script>
 
-<div class="min-h-screen bg-white flex items-center justify-center p-4">
+<div class="min-h-screen bg-green-500 flex items-center justify-center p-4">
   <div class="w-full max-w-md">
     <!-- Logo/Brand Section -->
     <div class="text-center mb-8">
