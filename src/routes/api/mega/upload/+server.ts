@@ -23,6 +23,12 @@ export const POST: RequestHandler = async ({ request }) => {
 		const megaEmail = process.env.MEGA_EMAIL;
 		const megaPassword = process.env.MEGA_PASSWORD;
 
+		console.log('MEGA credentials check:', { 
+			hasEmail: !!megaEmail, 
+			hasPassword: !!megaPassword,
+			emailPrefix: megaEmail?.substring(0, 3) + '***'
+		});
+
 		if (!megaEmail || !megaPassword) {
 			return json({ 
 				error: 'MEGA credentials not configured. Please set MEGA_EMAIL and MEGA_PASSWORD environment variables.' 
@@ -37,6 +43,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		const safeTitle = title.replace(/[^a-zA-Z0-9]/g, '_');
 		const fileName = `${safeTitle}.pdf`;
 
+		console.log('Starting MEGA upload:', { fileName, fileSize: buffer.length });
+
 		// Initialize MEGA storage
 		const storage = new Storage({
 			email: megaEmail,
@@ -44,11 +52,14 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		// Connect to MEGA
+		console.log('Connecting to MEGA...');
 		await storage.ready;
+		console.log('MEGA connection successful');
 
 		// Find or create a books folder
 		let booksFolder = storage.children.find((child: any) => child.name === 'GD-Library-Books');
 		if (!booksFolder) {
+			console.log('Creating GD-Library-Books folder...');
 			booksFolder = storage.mkdir('GD-Library-Books');
 		}
 
@@ -57,6 +68,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			name: fileName,
 			size: buffer.length
 		});
+
+		console.log('Starting file upload to MEGA...');
 
 		// Write the buffer to the upload stream
 		return new Promise((resolve, reject) => {
@@ -70,6 +83,7 @@ export const POST: RequestHandler = async ({ request }) => {
 						fileName
 					}));
 				} catch (err) {
+					console.error('Failed to generate MEGA link:', err);
 					reject(json({ 
 						error: 'Failed to generate MEGA link: ' + (err as Error).message 
 					}, { status: 500 }));

@@ -64,12 +64,24 @@
       formData.append('file', selectedFile);
       formData.append('title', bookForm.title);
 
+      console.log('Starting MEGA upload request...', { 
+        fileName: selectedFile.name, 
+        fileSize: selectedFile.size,
+        title: bookForm.title 
+      });
+
       const response = await fetch('/api/mega/upload', {
         method: 'POST',
         body: formData
       });
 
       const result = await response.json();
+
+      console.log('MEGA upload response:', { 
+        status: response.status, 
+        ok: response.ok, 
+        result 
+      });
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Upload failed');
