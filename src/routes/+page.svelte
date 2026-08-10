@@ -88,7 +88,7 @@
   }
 </script>
 
-<div class="min-h-screen bg-green-500 flex items-center justify-center p-4">
+<div class="min-h-screen bg-white flex items-center justify-center p-4">
   <div class="w-full max-w-md">
     <!-- Logo/Brand Section -->
     <div class="text-center mb-8">
@@ -96,18 +96,7 @@
       <p class="text-gray-600 text-sm">Admin Login</p>
     </div>
     
-    <!-- App Download Link for Users -->
-    <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-      <p class="text-sm text-blue-800 mb-2">
-        <strong>📱 Mobile App</strong>
-      </p>
-      <a 
-        href="/download" 
-        class="block w-full bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm"
-      >
-        Download Gardner E-Books App
-      </a>
-    </div>
+
 
     <!-- Login Card -->
     <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">

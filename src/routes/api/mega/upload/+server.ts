@@ -57,10 +57,28 @@ export const POST: RequestHandler = async ({ request }) => {
 		console.log('MEGA connection successful');
 
 		// Find or create a books folder
-		let booksFolder = storage.children.find((child: any) => child.name === 'GD-Library-Books');
-		if (!booksFolder) {
-			console.log('Creating GD-Library-Books folder...');
-			booksFolder = storage.mkdir('GD-Library-Books');
+		console.log('Looking for GD-Library-Books folder...');
+		let booksFolder;
+		
+		// Wait for storage to be fully loaded and get children
+		try {
+			await storage.getAccountInfo();
+			const children = storage.children || [];
+			console.log('Storage children count:', children.length);
+			
+			booksFolder = children.find((child: any) => child.name === 'GD-Library-Books');
+			
+			if (!booksFolder) {
+				console.log('Creating GD-Library-Books folder...');
+				booksFolder = storage.mkdir('GD-Library-Books');
+				console.log('Folder created successfully');
+			} else {
+				console.log('Found existing GD-Library-Books folder');
+			}
+		} catch (folderError) {
+			console.error('Error with folder operations:', folderError);
+			// If folder operations fail, try to upload to root
+			booksFolder = storage;
 		}
 
 		// Upload the file using the directory's upload method

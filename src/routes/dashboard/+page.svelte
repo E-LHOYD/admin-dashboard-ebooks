@@ -234,7 +234,7 @@
   @import './style.css';
   
   .dashboard-container {
-    background-color: red;
+    background-color: white;
     min-height: 100vh;
     padding: 20px;
   }
