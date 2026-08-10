@@ -7,11 +7,8 @@
 
   // Reactive state variables
   let saving = $state(false);
-  let uploading = $state(false);
   let errorMessage = $state('');
   let successMessage = $state('');
-  let selectedFile = $state(null);
-  let useAutoUpload = $state(true); // Default to automatic upload
 
   // Helper function to get today's date
   function getTodayDate() {
@@ -32,74 +29,6 @@
     megaFileUrl: ''
   });
 
-  // Handle file selection
-  function handleFileChange(event) {
-    selectedFile = event.target.files[0];
-    if (selectedFile) {
-      // Auto-fill title from filename if title is empty
-      if (!bookForm.title) {
-        const fileName = selectedFile.name.replace(/\.[^/.]+$/, ""); // Remove extension
-        bookForm.title = fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); // Format nicely
-      }
-    }
-  }
-
-  // Upload file to MEGA automatically
-  async function uploadToMega() {
-    if (!selectedFile) {
-      errorMessage = 'Please select a PDF file to upload';
-      return null;
-    }
-
-    if (!bookForm.title) {
-      errorMessage = 'Please enter a book title first';
-      return null;
-    }
-
-    uploading = true;
-    errorMessage = '';
-
-    try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('title', bookForm.title);
-
-      console.log('Starting MEGA upload request...', { 
-        fileName: selectedFile.name, 
-        fileSize: selectedFile.size,
-        title: bookForm.title 
-      });
-
-      const response = await fetch('/api/mega/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      const result = await response.json();
-
-      console.log('MEGA upload response:', { 
-        status: response.status, 
-        ok: response.ok, 
-        result 
-      });
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Upload failed');
-      }
-
-      bookForm.megaFileUrl = result.megaFileUrl;
-      console.log('MEGA upload successful:', result);
-      return result.megaFileUrl;
-
-    } catch (error) {
-      console.error('MEGA upload error:', error);
-      errorMessage = `Failed to upload to MEGA: ${error.message}`;
-      return null;
-    } finally {
-      uploading = false;
-    }
-  }
-
   // Add new book
   async function addBook(event) {
     event.preventDefault();
@@ -112,32 +41,16 @@
       return;
     }
 
-    let megaFileUrl = '';
+    const megaFileUrl = bookForm.megaFileUrl.trim();
 
-    if (useAutoUpload) {
-      // Automatic MEGA upload
-      if (!selectedFile) {
-        errorMessage = 'Please select a PDF file to upload';
-        return;
-      }
+    if (!megaFileUrl) {
+      errorMessage = 'A MEGA link is required so the book can be opened in the app. ' + MEGA_URL_HINT;
+      return;
+    }
 
-      megaFileUrl = await uploadToMega();
-      if (!megaFileUrl) {
-        return; // Upload failed, error message already set
-      }
-    } else {
-      // Manual MEGA link entry
-      megaFileUrl = bookForm.megaFileUrl.trim();
-
-      if (!megaFileUrl) {
-        errorMessage = 'A MEGA link is required so the book can be opened in the app. ' + MEGA_URL_HINT;
-        return;
-      }
-
-      if (!isMegaUrl(megaFileUrl)) {
-        errorMessage = 'That does not look like a MEGA file link. ' + MEGA_URL_HINT;
-        return;
-      }
+    if (!isMegaUrl(megaFileUrl)) {
+      errorMessage = 'That does not look like a MEGA file link. ' + MEGA_URL_HINT;
+      return;
     }
 
     // Check authentication
@@ -189,7 +102,6 @@
       releaseDate: getTodayDate(),
       megaFileUrl: ''
     };
-    selectedFile = null;
     errorMessage = '';
     successMessage = '';
   }
@@ -234,60 +146,22 @@
       {/if}
 
       <form onsubmit={addBook}>
-        <!-- Upload Mode Toggle -->
-        <fieldset class="form-group">
-          <legend class="field-label">Upload Method</legend>
-          <div class="upload-mode-toggle">
-            <label class="toggle-option">
-              <input type="radio" bind:group={useAutoUpload} value={true} />
-              <span>Automatic MEGA Upload</span>
-            </label>
-            <label class="toggle-option">
-              <input type="radio" bind:group={useAutoUpload} value={false} />
-              <span>Manual MEGA Link</span>
-            </label>
-          </div>
-        </fieldset>
-
-        {#if useAutoUpload}
-          <!-- File Upload (automatic mode) -->
-          <div class="form-group">
-            <label class="field-label" for="file-upload">PDF File *</label>
-            <input
-              id="file-upload"
-              type="file"
-              accept=".pdf"
-              onchange={handleFileChange}
-              required
-            />
-            <p class="field-hint">
-              Select the PDF file to upload. It will be automatically uploaded to MEGA
-              and the share link will be saved to Firebase.
-            </p>
-            {#if selectedFile}
-              <div class="file-info">
-                <strong>Selected:</strong> {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-              </div>
-            {/if}
-          </div>
-        {:else}
-          <!-- MEGA link (manual mode) -->
-          <div class="form-group">
-            <label class="field-label" for="mega-url">MEGA link *</label>
-            <input
-              id="mega-url"
-              type="url"
-              placeholder="https://mega.nz/file/XXXXXXXX#key"
-              bind:value={bookForm.megaFileUrl}
-              required
-            />
-            <p class="field-hint">
-              Upload the PDF to your MEGA account, choose <strong>Share &rarr; Copy link</strong>
-              (the link must include the decryption key after <code>#</code>), then paste it here.
-              This is saved as <code>megaFileUrl</code> and is what the mobile app opens.
-            </p>
-          </div>
-        {/if}
+        <!-- MEGA link (required) -->
+        <div class="form-group">
+          <label class="field-label" for="mega-url">MEGA link *</label>
+          <input
+            id="mega-url"
+            type="url"
+            placeholder="https://mega.nz/file/XXXXXXXX#key"
+            bind:value={bookForm.megaFileUrl}
+            required
+          />
+          <p class="field-hint">
+            Upload the PDF to your MEGA account, choose <strong>Share &rarr; Copy link</strong>
+            (the link must include the decryption key after <code>#</code>), then paste it here.
+            This is saved as <code>megaFileUrl</code> and is what the mobile app opens.
+          </p>
+        </div>
 
         <!-- Book Details -->
         <div class="form-grid">
@@ -347,8 +221,8 @@
         <!-- Form Actions -->
         <div class="form-actions">
           <button type="button" class="cancel-btn" onclick={resetForm}>Reset</button>
-          <button type="submit" class="submit-btn" disabled={saving || uploading}>
-            {uploading ? 'Uploading to MEGA...' : (saving ? 'Saving...' : 'Save Book')}
+          <button type="submit" class="submit-btn" disabled={saving}>
+            {saving ? 'Saving...' : 'Save Book'}
           </button>
         </div>
       </form>
@@ -392,30 +266,17 @@
     border-radius: 3px;
   }
 
-  .upload-mode-toggle {
-    display: flex;
-    gap: 20px;
-    margin-top: 8px;
-  }
-
-  .toggle-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-  }
-
-  .toggle-option input[type="radio"] {
+  fieldset {
+    border: none;
+    padding: 0;
     margin: 0;
   }
 
-  .file-info {
-    margin-top: 8px;
-    padding: 8px 12px;
-    background: #e7f3ff;
-    border-radius: 4px;
-    font-size: 14px;
-    color: #0066cc;
+  legend {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #333;
   }
 
   .upload-container {
