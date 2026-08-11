@@ -16,7 +16,43 @@
   let errorMessage = $state('');
   let pageCount = $state(0);
   let pagesRendered = $state(0);
+  let currentPage = $state(1);
   let container = $state();
+
+  // The mobile app polls window.__readerProgress from the native side; it
+  // cannot observe scrolling inside this WebView any other way.
+  function publishProgress(page, total) {
+    currentPage = page;
+    const percent = total > 0 ? (page / total) * 100 : 0;
+    window.__readerProgress = { page, total, percent };
+  }
+
+  // Which page occupies most of the viewport right now.
+  function pageInView() {
+    const canvases = container?.querySelectorAll('canvas.pdf-page') ?? [];
+    let best = 1;
+    let bestVisible = -1;
+
+    for (let i = 0; i < canvases.length; i++) {
+      const r = canvases[i].getBoundingClientRect();
+      const visible = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+      if (visible > bestVisible) {
+        bestVisible = visible;
+        best = i + 1;
+      }
+    }
+    return best;
+  }
+
+  let scrollQueued = false;
+  function onScroll() {
+    if (scrollQueued) return;
+    scrollQueued = true;
+    requestAnimationFrame(() => {
+      scrollQueued = false;
+      if (pageCount > 0) publishProgress(pageInView(), pageCount);
+    });
+  }
 
   async function renderPage(pdf, pageNumber) {
     const page = await pdf.getPage(pageNumber);
@@ -80,6 +116,11 @@
       pageCount = pdf.numPages;
       status = '';
 
+      // Publish immediately so the app shows 1 / N rather than 0% while the
+      // remaining pages are still being drawn.
+      publishProgress(1, pageCount);
+      window.addEventListener('scroll', onScroll, { passive: true });
+
       // Render sequentially so the first page appears as soon as possible
       // instead of waiting for the whole book.
       for (let i = 1; i <= pdf.numPages; i++) {
@@ -109,7 +150,9 @@
 {/if}
 
 {#if pageCount > 0}
-  <div class="page-counter">{pagesRendered} / {pageCount}</div>
+  <div class="page-counter">
+    {pagesRendered < pageCount ? `rendering ${pagesRendered} / ${pageCount}` : `${currentPage} / ${pageCount}`}
+  </div>
 {/if}
 
 <div class="pages" bind:this={container}></div>
