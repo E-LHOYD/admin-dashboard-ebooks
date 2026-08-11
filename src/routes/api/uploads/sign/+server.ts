@@ -36,6 +36,47 @@ const CONTENT_TYPES: Record<string, string> = {
 	txt: 'text/plain'
 };
 
+/**
+ * Environment variables pasted into a dashboard commonly arrive wrapped in
+ * quotes or carrying a stray newline. Supabase then rejects the key with
+ * "JWS Protected Header is invalid", which says nothing about the real cause.
+ */
+function readKey(raw: string | undefined): string {
+	let key = (raw ?? '').trim();
+	const quoted =
+		key.length > 1 &&
+		((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'")));
+	if (quoted) {
+		key = key.slice(1, -1).trim();
+	}
+	return key.replace(/\s+/g, '');
+}
+
+/** Explain why a key is unusable, without ever echoing the key itself. */
+function describeKeyProblem(key: string): string | null {
+	if (!key) return 'it is empty';
+
+	if (key.startsWith('sb_')) {
+		return 'it is one of the newer sb_... API keys, but Storage needs the legacy ' +
+			'service_role JWT from Project Settings > API, which starts with "eyJ"';
+	}
+
+	const parts = key.split('.');
+	if (parts.length !== 3) {
+		return `it is not a JWT (expected 3 dot-separated segments, found ${parts.length}), ` +
+			'so it was most likely truncated when it was pasted';
+	}
+
+	try {
+		const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
+		if (!header.alg) return 'its header carries no "alg" field';
+	} catch {
+		return 'its first segment is not valid base64url JSON';
+	}
+
+	return null;
+}
+
 /** Strip anything that would be awkward or unsafe in an object path. */
 function slugify(name: string): string {
 	return name
@@ -72,8 +113,8 @@ async function requireAdmin(request: Request): Promise<string> {
 }
 
 export const POST: RequestHandler = async ({ request }) => {
-	const supabaseUrl = publicEnv.PUBLIC_SUPABASE_URL;
-	const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+	const supabaseUrl = (publicEnv.PUBLIC_SUPABASE_URL ?? '').trim();
+	const serviceRoleKey = readKey(env.SUPABASE_SERVICE_ROLE_KEY);
 
 	if (!supabaseUrl || !serviceRoleKey) {
 		throw error(
@@ -81,6 +122,14 @@ export const POST: RequestHandler = async ({ request }) => {
 			'Storage is not configured on the server. Set PUBLIC_SUPABASE_URL and ' +
 				'SUPABASE_SERVICE_ROLE_KEY in the environment.'
 		);
+	}
+
+	// Checked before anything else touches Supabase, so a bad key reports itself
+	// instead of surfacing as Supabase's opaque "JWS Protected Header is invalid".
+	const keyProblem = describeKeyProblem(serviceRoleKey);
+	if (keyProblem) {
+		console.error('SUPABASE_SERVICE_ROLE_KEY is unusable:', keyProblem);
+		throw error(500, `The server's SUPABASE_SERVICE_ROLE_KEY is not usable: ${keyProblem}.`);
 	}
 
 	const uid = await requireAdmin(request);
