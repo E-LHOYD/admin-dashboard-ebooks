@@ -10,6 +10,7 @@
     toDate,
     ACTIVE_NOW_MINUTES
   } from '$lib/activity';
+  import { bookSubjects } from '$lib/subjects';
 
   let loading = $state(true);
   let errorMessage = $state('');
@@ -119,10 +120,14 @@
   let subjectRows = $derived.by(() => {
     const map = new Map();
     for (const p of progress) {
-      const subject = booksById.get(p.bookId)?.subject || 'Unspecified';
-      if (!map.has(subject)) map.set(subject, { label: subject, read: 0, viewed: 0 });
-      if (p.status === 'read') map.get(subject).read++;
-      else map.get(subject).viewed++;
+      // A book can carry several subjects, and counts once under each.
+      const subjects = bookSubjects(booksById.get(p.bookId));
+      const labels = subjects.length ? subjects : ['Unspecified'];
+      for (const subject of labels) {
+        if (!map.has(subject)) map.set(subject, { label: subject, read: 0, viewed: 0 });
+        if (p.status === 'read') map.get(subject).read++;
+        else map.get(subject).viewed++;
+      }
     }
     return [...map.values()]
       .map((r) => ({ ...r, total: r.read + r.viewed }))

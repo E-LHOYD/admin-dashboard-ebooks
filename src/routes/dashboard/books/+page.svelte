@@ -4,6 +4,7 @@
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
   import { uploadBookFile } from '$lib/uploadBook';
+  import { SUBJECTS, bookSubjects, subjectsLabel, hasSubject } from '$lib/subjects';
   import {
     ACCEPTED_EXTENSIONS,
     formatFileSize,
@@ -24,7 +25,7 @@
   // Search and filter state
   let searchQuery = $state('');
   let filters = $state({
-    subject: '',
+    subjects: [],
     author: '',
     releaseDate: '',
     publishedDate: ''
@@ -42,7 +43,7 @@
       title: '',
       author: '',
       detail: '',
-      subject: '',
+      subjects: [],
       downloadedFrom: '',
       releaseDate: getTodayDate(),
       publishedDate: getTodayDate()
@@ -76,7 +77,7 @@
         const query = searchQuery.toLowerCase();
         const title = book.title?.toLowerCase() || '';
         const author = book.author?.toLowerCase() || '';
-        const subject = book.subject?.toLowerCase() || '';
+        const subject = subjectsLabel(book).toLowerCase();
         const documentId = book.id?.toLowerCase() || '';
 
         const matchesSearch = 
@@ -91,7 +92,7 @@
       }
 
       // Subject filter
-      if (filters.subject && book.subject !== filters.subject) {
+      if (filters.subject && !hasSubject(book, filters.subject)) {
         return false;
       }
 
@@ -116,7 +117,9 @@
 
   // Get unique values for filters
   function getUniqueSubjects() {
-    return [...new Set(books.map(b => b.subject).filter(Boolean))].sort();
+    // The canonical list rather than whatever happens to be in the data, so a
+    // subject with no books yet can still be filtered on.
+    return SUBJECTS;
   }
 
   function getUniqueAuthors() {
@@ -134,7 +137,7 @@
   // Reset all filters
   function resetFilters() {
     filters = {
-      subject: '',
+      subjects: [],
       author: '',
       releaseDate: '',
       publishedDate: ''
@@ -154,7 +157,7 @@
       title: book.title ?? '',
       author: book.author ?? '',
       detail: book.detail ?? '',
-      subject: book.subject ?? '',
+      subjects: bookSubjects(book),
       downloadedFrom: book.downloadedFrom ?? '',
       releaseDate: book.releaseDate ?? getTodayDate(),
       publishedDate: book.publishedDate ?? getTodayDate()
@@ -192,7 +195,11 @@
     saving = true;
 
     try {
-      const changes = { ...bookForm };
+      const changes = {
+        ...bookForm,
+        // Mirrored for the app's recommendations, which still read `subject`.
+        subject: (bookForm.subjects || []).join(', ')
+      };
 
       if (replacementFile) {
         const uploaded = await uploadBookFile(replacementFile);
@@ -364,7 +371,7 @@
               <tr>
                 <td>{book.title}</td>
                 <td>{book.author}</td>
-                <td>{book.subject}</td>
+                <td>{subjectsLabel(book) || '—'}</td>
                 <td>{book.releaseDate}</td>
                 <td>{book.publishedDate || '-'}</td>
                 <td class="file-cell">
@@ -441,8 +448,15 @@
           </div>
 
           <div class="form-group">
-            <label class="field-label" for="edit-subject">Subject *</label>
-            <input id="edit-subject" type="text" bind:value={bookForm.subject} required />
+            <span class="field-label">Subjects *</span>
+            <div class="subject-grid">
+              {#each SUBJECTS as subject}
+                <label class="subject-option">
+                  <input type="checkbox" value={subject} bind:group={bookForm.subjects} />
+                  <span>{subject}</span>
+                </label>
+              {/each}
+            </div>
           </div>
 
           <div class="form-group">
@@ -480,6 +494,33 @@
 
 <style>
   @import '../style.css';
+
+  .subject-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+
+  .subject-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 9px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .subject-option:hover {
+    border-color: #007bff;
+    background: #f8f9ff;
+  }
+
+  .subject-option input {
+    width: auto;
+    margin: 0;
+  }
   
   .dashboard-container {
     background-color: white;

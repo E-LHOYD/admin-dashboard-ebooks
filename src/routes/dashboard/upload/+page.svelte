@@ -4,6 +4,7 @@
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
   import { uploadBookFile } from '$lib/uploadBook';
+  import { SUBJECTS } from '$lib/subjects';
   import {
     ACCEPTED_EXTENSIONS,
     MAX_FILE_BYTES,
@@ -34,10 +35,9 @@
     title: '',
     author: '',
     detail: '',
-    subject: '',
+    subjects: [],
     downloadedFrom: '',
-    releaseDate: getTodayDate(),
-    publishedDate: getTodayDate()
+    releaseDate: getTodayDate()
   });
 
   // Handle file selection
@@ -64,8 +64,13 @@
     errorMessage = '';
     successMessage = '';
 
-    if (!bookForm.title || !bookForm.author || !bookForm.subject) {
+    if (!bookForm.title || !bookForm.author) {
       errorMessage = 'Please fill in all required fields';
+      return;
+    }
+
+    if (bookForm.subjects.length === 0) {
+      errorMessage = 'Choose at least one subject.';
       return;
     }
 
@@ -90,10 +95,12 @@
         title: bookForm.title.trim(),
         author: bookForm.author.trim(),
         detail: bookForm.detail,
-        subject: bookForm.subject.trim(),
+        subjects: [...bookForm.subjects],
+        // Also written as a joined string: the app's recommendations still read
+        // the old single `subject` field.
+        subject: bookForm.subjects.join(', '),
         downloadedFrom: bookForm.downloadedFrom,
         releaseDate: bookForm.releaseDate,
-        publishedDate: bookForm.publishedDate,
         fileUrl: uploaded.fileUrl,
         filePath: uploaded.filePath,
         fileName: uploaded.fileName,
@@ -124,10 +131,9 @@
       title: '',
       author: '',
       detail: '',
-      subject: '',
+      subjects: [],
       downloadedFrom: '',
-      releaseDate: getTodayDate(),
-      publishedDate: getTodayDate()
+      releaseDate: getTodayDate()
     };
     selectedFile = null;
     if (fileInput) fileInput.value = '';
@@ -147,22 +153,25 @@
 
 </script>
 
-<div class="dashboard-container">
+<div class="upload-container">
   <!-- Header -->
-  <header class="dashboard-header">
-    <div class="header-left">
-      <h1>Gardner E-Books Library Dashboard</h1>
-      <p class="user-info">Upload Book</p>
+  <header class="page-header">
+    <div class="header-content">
+      <h1>Upload Book</h1>
+      <nav class="breadcrumb">
+        <a href="/dashboard">Dashboard</a> / <a href="/dashboard/books">Books</a> / Upload
+      </nav>
     </div>
     <div class="header-actions">
-      <button class="register-btn" onclick={() => goto('/dashboard/books')}>Back to Books</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
   </header>
 
   <!-- Upload Form -->
-  <section class="stats-section">
+  <section class="upload-section">
     <div class="upload-card">
+      <h2>Book Information</h2>
+      
       {#if !isSupabaseConfigured}
         <div class="error-message">Storage is not configured. {SUPABASE_SETUP_HINT}</div>
       {/if}
@@ -232,26 +241,24 @@
           </div>
         </div>
 
-        <div class="form-grid">
-          <div class="form-group">
-            <input 
-              type="text" 
-              placeholder="Subject *" 
-              bind:value={bookForm.subject} 
-              required
-            />
+        <div class="form-group">
+          <span class="field-label">Subjects *</span>
+          <div class="subject-grid">
+            {#each SUBJECTS as subject}
+              <label class="subject-option">
+                <input type="checkbox" value={subject} bind:group={bookForm.subjects} />
+                <span>{subject}</span>
+              </label>
+            {/each}
           </div>
+          <p class="field-hint">A book can belong to more than one subject.</p>
+        </div>
+
+        <div class="form-grid">
           <div class="form-group">
             <input 
               type="date" 
               bind:value={bookForm.releaseDate} 
-              required
-            />
-          </div>
-          <div class="form-group">
-            <input 
-              type="date" 
-              bind:value={bookForm.publishedDate} 
               required
             />
           </div>
@@ -297,38 +304,166 @@
 
 <style>
   @import '../style.css';
-  
-  .dashboard-container {
-    background-color: white;
-    min-height: 100vh;
-    padding: 20px;
+
+  .field-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
   }
 
-  .dashboard-header {
+  .subject-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+
+  .subject-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .subject-option:hover {
+    border-color: #007bff;
+    background: #f8f9ff;
+  }
+
+  .subject-option input {
+    width: auto;
+    margin: 0;
+  }
+
+  .file-upload-label {
+    display: block;
+    cursor: pointer;
+  }
+
+  .file-upload-area {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+  }
+
+  .file-upload-area:hover {
+    border-color: #007bff;
+    background-color: #f8f9ff;
+  }
+
+  .file-input {
+    display: none;
+  }
+
+  .upload-prompt {
+    color: #666;
+  }
+
+  .upload-icon,
+  .file-icon {
+    font-size: 34px;
+    margin-bottom: 8px;
+  }
+
+  .upload-hint {
+    font-size: 12px;
+    color: #999;
+    margin-top: 6px;
+  }
+
+  .file-info {
+    color: #333;
+  }
+
+  .file-name {
+    font-weight: 600;
+    word-break: break-all;
+  }
+
+  .file-size {
+    font-size: 13px;
+    color: #666;
+  }
+
+  .upload-progress {
+    margin-bottom: 20px;
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar.indeterminate .progress-fill {
+    width: 40%;
+    height: 100%;
+    background: #007bff;
+    border-radius: 3px;
+    animation: slide 1.2s ease-in-out infinite;
+  }
+
+  @keyframes slide {
+    0% { margin-left: -40%; }
+    100% { margin-left: 100%; }
+  }
+
+  .progress-text {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #666;
+    text-align: center;
+  }
+
+
+  .field-hint {
+    margin: 6px 0 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #666;
+  }
+
+
+  .upload-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+  }
+
+  .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
     padding-bottom: 20px;
-    border-bottom: 2px solid #ccc;
+    border-bottom: 2px solid #eee;
   }
 
-  .header-left {
-    display: flex;
-    flex-direction: column;
+  .header-content h1 {
+    color: #333;
+    margin: 0 0 5px 0;
   }
 
-  .dashboard-header h1 {
-    color: #033047;
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: bold;
-  }
-
-  .user-info {
+  .breadcrumb {
     color: #666;
-    margin: 5px 0 0 0;
-    font-size: 0.875rem;
+    font-size: 14px;
+  }
+
+  .breadcrumb a {
+    color: #007bff;
+    text-decoration: none;
+  }
+
+  .breadcrumb a:hover {
+    text-decoration: underline;
   }
 
   .header-actions {
@@ -336,49 +471,21 @@
     gap: 10px;
   }
 
-  .register-btn {
-    background: #033047;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-    width: auto;
-  }
-
-  .register-btn:hover {
-    background: #024060;
-  }
-
-  .logout-btn {
-    background: white;
-    color: #033047;
-    border: 2px solid #033047;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-    width: auto;
-  }
-
-  .logout-btn:hover {
-    background: #033047;
-    color: white;
-  }
-
-  .stats-section {
+  .upload-section {
     margin-bottom: 40px;
   }
 
   .upload-card {
     background: white;
-    border: 1px solid #ccc;
-    border-radius: 8px;
     padding: 30px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+
+  .upload-card h2 {
+    margin-top: 0;
+    margin-bottom: 25px;
+    color: #333;
   }
 
   .error-message {
@@ -399,95 +506,17 @@
     border: 1px solid #c3e6cb;
   }
 
-  .file-upload-label {
-    display: block;
-    cursor: pointer;
-  }
 
-  .file-upload-area {
-    border: 2px dashed #ccc;
-    border-radius: 8px;
-    padding: 30px;
-    text-align: center;
-    transition: border-color 0.3s ease, background-color 0.3s ease;
-  }
 
-  .file-upload-area:hover {
-    border-color: #033047;
-    background-color: #f8f9fa;
-  }
 
-  .file-input {
-    display: none;
-  }
 
-  .upload-prompt {
-    color: #666;
-  }
 
-  .upload-icon,
-  .file-icon {
-    font-size: 2.125rem;
-    margin-bottom: 8px;
-  }
 
-  .upload-hint {
-    font-size: 0.75rem;
-    color: #999;
-    margin-top: 6px;
-  }
 
-  .file-info {
-    color: #333;
-  }
 
-  .file-name {
-    font-weight: 600;
-    word-break: break-all;
-  }
 
-  .file-size {
-    font-size: 0.8125rem;
-    color: #666;
-  }
 
-  .upload-progress {
-    margin-bottom: 20px;
-  }
 
-  .progress-bar {
-    height: 6px;
-    background: #e9ecef;
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
-  .progress-bar.indeterminate .progress-fill {
-    width: 40%;
-    height: 100%;
-    background: #033047;
-    border-radius: 3px;
-    animation: slide 1.2s ease-in-out infinite;
-  }
-
-  @keyframes slide {
-    0% { margin-left: -40%; }
-    100% { margin-left: 100%; }
-  }
-
-  .progress-text {
-    margin-top: 8px;
-    font-size: 0.8125rem;
-    color: #666;
-    text-align: center;
-  }
-
-  .field-hint {
-    margin: 6px 0 0 0;
-    font-size: 0.8125rem;
-    line-height: 1.5;
-    color: #666;
-  }
 
   .form-grid {
     display: grid;
@@ -503,22 +532,26 @@
   .form-group input, .form-group textarea {
     width: 100%;
     padding: 12px;
-    border: 1px solid #ccc;
+    border: 1px solid #ddd;
     border-radius: 6px;
-    font-size: 0.875rem;
+    font-size: 14px;
     transition: border-color 0.3s ease;
   }
 
   .form-group input:focus, .form-group textarea:focus {
     outline: none;
-    border-color: #033047;
-    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
   }
 
   .form-group textarea {
     resize: vertical;
     min-height: 100px;
   }
+
+
+
+
 
   .form-actions {
     display: flex;
@@ -528,34 +561,34 @@
   }
 
   .cancel-btn {
-    background: white;
-    color: #033047;
-    border: 2px solid #033047;
-    padding: 10px 20px;
-    border-radius: 8px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
   }
 
   .cancel-btn:hover {
-    background: #033047;
-    color: white;
+    background: #5a6268;
   }
 
+
   .submit-btn {
-    background: #033047;
+    background: #28a745;
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 12px 24px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
   }
 
   .submit-btn:hover:not(:disabled) {
-    background: #024060;
+    background: #218838;
   }
 
   .submit-btn:disabled {
@@ -567,5 +600,7 @@
     .form-grid {
       grid-template-columns: 1fr;
     }
+    
+    
   }
 </style>
