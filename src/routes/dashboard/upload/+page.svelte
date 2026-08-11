@@ -36,7 +36,8 @@
     detail: '',
     subject: '',
     downloadedFrom: '',
-    releaseDate: getTodayDate()
+    releaseDate: getTodayDate(),
+    publishedDate: getTodayDate()
   });
 
   // Handle file selection
@@ -92,6 +93,7 @@
         subject: bookForm.subject.trim(),
         downloadedFrom: bookForm.downloadedFrom,
         releaseDate: bookForm.releaseDate,
+        publishedDate: bookForm.publishedDate,
         fileUrl: uploaded.fileUrl,
         filePath: uploaded.filePath,
         fileName: uploaded.fileName,
@@ -124,7 +126,8 @@
       detail: '',
       subject: '',
       downloadedFrom: '',
-      releaseDate: getTodayDate()
+      releaseDate: getTodayDate(),
+      publishedDate: getTodayDate()
     };
     selectedFile = null;
     if (fileInput) fileInput.value = '';
@@ -144,25 +147,22 @@
 
 </script>
 
-<div class="upload-container">
+<div class="dashboard-container">
   <!-- Header -->
-  <header class="page-header">
-    <div class="header-content">
-      <h1>Upload Book</h1>
-      <nav class="breadcrumb">
-        <a href="/dashboard">Dashboard</a> / <a href="/dashboard/books">Books</a> / Upload
-      </nav>
+  <header class="dashboard-header">
+    <div class="header-left">
+      <h1>Gardner E-Books Library Dashboard</h1>
+      <p class="user-info">Upload Book</p>
     </div>
     <div class="header-actions">
+      <button class="register-btn" onclick={() => goto('/dashboard/books')}>Back to Books</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
   </header>
 
   <!-- Upload Form -->
-  <section class="upload-section">
+  <section class="stats-section">
     <div class="upload-card">
-      <h2>Book Information</h2>
-      
       {#if !isSupabaseConfigured}
         <div class="error-message">Storage is not configured. {SUPABASE_SETUP_HINT}</div>
       {/if}
@@ -248,6 +248,13 @@
               required
             />
           </div>
+          <div class="form-group">
+            <input 
+              type="date" 
+              bind:value={bookForm.publishedDate} 
+              required
+            />
+          </div>
         </div>
 
         <div class="form-group">
@@ -290,132 +297,38 @@
 
 <style>
   @import '../style.css';
-
-  .file-upload-label {
-    display: block;
-    cursor: pointer;
-  }
-
-  .file-upload-area {
-    border: 2px dashed #ddd;
-    border-radius: 8px;
-    padding: 30px;
-    text-align: center;
-    transition: border-color 0.3s ease, background-color 0.3s ease;
-  }
-
-  .file-upload-area:hover {
-    border-color: #007bff;
-    background-color: #f8f9ff;
-  }
-
-  .file-input {
-    display: none;
-  }
-
-  .upload-prompt {
-    color: #666;
-  }
-
-  .upload-icon,
-  .file-icon {
-    font-size: 34px;
-    margin-bottom: 8px;
-  }
-
-  .upload-hint {
-    font-size: 12px;
-    color: #999;
-    margin-top: 6px;
-  }
-
-  .file-info {
-    color: #333;
-  }
-
-  .file-name {
-    font-weight: 600;
-    word-break: break-all;
-  }
-
-  .file-size {
-    font-size: 13px;
-    color: #666;
-  }
-
-  .upload-progress {
-    margin-bottom: 20px;
-  }
-
-  .progress-bar {
-    height: 6px;
-    background: #e9ecef;
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
-  .progress-bar.indeterminate .progress-fill {
-    width: 40%;
-    height: 100%;
-    background: #007bff;
-    border-radius: 3px;
-    animation: slide 1.2s ease-in-out infinite;
-  }
-
-  @keyframes slide {
-    0% { margin-left: -40%; }
-    100% { margin-left: 100%; }
-  }
-
-  .progress-text {
-    margin-top: 8px;
-    font-size: 13px;
-    color: #666;
-    text-align: center;
-  }
-
-
-  .field-hint {
-    margin: 6px 0 0 0;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #666;
-  }
-
-
-  .upload-container {
-    max-width: 800px;
-    margin: 0 auto;
+  
+  .dashboard-container {
+    background-color: white;
+    min-height: 100vh;
     padding: 20px;
-    font-family: Arial, sans-serif;
   }
 
-  .page-header {
+  .dashboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
     padding-bottom: 20px;
-    border-bottom: 2px solid #eee;
+    border-bottom: 2px solid #ccc;
   }
 
-  .header-content h1 {
-    color: #333;
-    margin: 0 0 5px 0;
+  .header-left {
+    display: flex;
+    flex-direction: column;
   }
 
-  .breadcrumb {
+  .dashboard-header h1 {
+    color: #033047;
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: bold;
+  }
+
+  .user-info {
     color: #666;
-    font-size: 14px;
-  }
-
-  .breadcrumb a {
-    color: #007bff;
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
+    margin: 5px 0 0 0;
+    font-size: 0.875rem;
   }
 
   .header-actions {
@@ -423,21 +336,49 @@
     gap: 10px;
   }
 
-  .upload-section {
+  .register-btn {
+    background: #033047;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+    width: auto;
+  }
+
+  .register-btn:hover {
+    background: #024060;
+  }
+
+  .logout-btn {
+    background: white;
+    color: #033047;
+    border: 2px solid #033047;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+    width: auto;
+  }
+
+  .logout-btn:hover {
+    background: #033047;
+    color: white;
+  }
+
+  .stats-section {
     margin-bottom: 40px;
   }
 
   .upload-card {
     background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
     padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  }
-
-  .upload-card h2 {
-    margin-top: 0;
-    margin-bottom: 25px;
-    color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
   .error-message {
@@ -458,17 +399,95 @@
     border: 1px solid #c3e6cb;
   }
 
+  .file-upload-label {
+    display: block;
+    cursor: pointer;
+  }
 
+  .file-upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+  }
 
+  .file-upload-area:hover {
+    border-color: #033047;
+    background-color: #f8f9fa;
+  }
 
+  .file-input {
+    display: none;
+  }
 
+  .upload-prompt {
+    color: #666;
+  }
 
+  .upload-icon,
+  .file-icon {
+    font-size: 2.125rem;
+    margin-bottom: 8px;
+  }
 
+  .upload-hint {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 6px;
+  }
 
+  .file-info {
+    color: #333;
+  }
 
+  .file-name {
+    font-weight: 600;
+    word-break: break-all;
+  }
 
+  .file-size {
+    font-size: 0.8125rem;
+    color: #666;
+  }
 
+  .upload-progress {
+    margin-bottom: 20px;
+  }
 
+  .progress-bar {
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar.indeterminate .progress-fill {
+    width: 40%;
+    height: 100%;
+    background: #033047;
+    border-radius: 3px;
+    animation: slide 1.2s ease-in-out infinite;
+  }
+
+  @keyframes slide {
+    0% { margin-left: -40%; }
+    100% { margin-left: 100%; }
+  }
+
+  .progress-text {
+    margin-top: 8px;
+    font-size: 0.8125rem;
+    color: #666;
+    text-align: center;
+  }
+
+  .field-hint {
+    margin: 6px 0 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: #666;
+  }
 
   .form-grid {
     display: grid;
@@ -484,26 +503,22 @@
   .form-group input, .form-group textarea {
     width: 100%;
     padding: 12px;
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 0.875rem;
     transition: border-color 0.3s ease;
   }
 
   .form-group input:focus, .form-group textarea:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    border-color: #033047;
+    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
   }
 
   .form-group textarea {
     resize: vertical;
     min-height: 100px;
   }
-
-
-
-
 
   .form-actions {
     display: flex;
@@ -513,34 +528,34 @@
   }
 
   .cancel-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
+    background: white;
+    color: #033047;
+    border: 2px solid #033047;
+    padding: 10px 20px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
+    font-size: 0.875rem;
+    font-weight: bold;
   }
 
   .cancel-btn:hover {
-    background: #5a6268;
+    background: #033047;
+    color: white;
   }
 
-
   .submit-btn {
-    background: #28a745;
+    background: #033047;
     color: white;
     border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
+    padding: 10px 20px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
+    font-size: 0.875rem;
+    font-weight: bold;
   }
 
   .submit-btn:hover:not(:disabled) {
-    background: #218838;
+    background: #024060;
   }
 
   .submit-btn:disabled {
@@ -552,7 +567,5 @@
     .form-grid {
       grid-template-columns: 1fr;
     }
-    
-    
   }
 </style>
