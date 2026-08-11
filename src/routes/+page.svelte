@@ -1,7 +1,7 @@
 <script>
   // Import Firebase services
   import { auth, db } from '$lib/firebase'; // Firebase auth and database instances
-  import { signInWithEmailAndPassword } from 'firebase/auth'; // Email/password authentication
+  import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'; // Email/password authentication
   import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'; // Firestore operations
   import { goto } from '$app/navigation'; // SvelteKit navigation
 
@@ -11,6 +11,8 @@
   let password = $state(''); // Stores password input
   let error = $state(''); // Stores error messages for display
   let showPassword = $state(false); // Controls password visibility toggle
+  let notice = $state(''); // Confirmation shown after a password reset request
+  let sendingReset = $state(false);
 
   /**
    * Handles user login by supporting both username and email authentication
@@ -78,6 +80,53 @@
       console.error('Login error:', e);
       error = "Invalid username/email or password";
     }
+  }
+
+  /**
+   * Resolve a username or email to the email Firebase Auth knows, the same way
+   * a login does, so a reset can be asked for by username too.
+   */
+  async function resolveLoginEmail(input) {
+    if (input.includes('@')) return input;
+
+    const adminQuery = query(collection(db, 'admin'), where('username', '==', input));
+    const snapshot = await getDocs(adminQuery);
+
+    return snapshot.empty ? '' : (snapshot.docs[0].data().email ?? '');
+  }
+
+  /**
+   * Send a password reset email to the account in the username/email box.
+   *
+   * The confirmation is the same whether or not an account was found. Firebase
+   * will happily say 'auth/user-not-found', but repeating that here would let
+   * anyone who can reach this page test which addresses have admin accounts.
+   */
+  async function forgotPassword() {
+    error = '';
+    notice = '';
+
+    if (!username.trim()) {
+      error = 'Enter your username or email first, then choose Forgot password.';
+      return;
+    }
+
+    sendingReset = true;
+
+    try {
+      const resetEmail = await resolveLoginEmail(username.trim());
+
+      if (resetEmail) {
+        await sendPasswordResetEmail(auth, resetEmail);
+      }
+    } catch (e) {
+      // An unknown username or address lands here and is treated as a send.
+      console.log('Password reset lookup failed:', e?.code ?? e?.message);
+    } finally {
+      sendingReset = false;
+    }
+
+    notice = 'If that account exists, a reset link is on its way. Check the inbox and the spam folder.';
   }
 
   /**
@@ -159,6 +208,28 @@
             </button>
           </div>
         </div>
+
+        <!-- Forgot Password -->
+        <div class="-mt-2 text-right">
+          <button
+            type="button"
+            onclick={forgotPassword}
+            disabled={sendingReset}
+            class="text-sm font-medium text-[#033047] hover:underline disabled:opacity-50 disabled:no-underline"
+          >
+            {sendingReset ? 'Sending reset link...' : 'Forgot password?'}
+          </button>
+        </div>
+
+        <!-- Reset Notice -->
+        {#if notice}
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+            <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm text-blue-700">{notice}</p>
+          </div>
+        {/if}
 
         <!-- Error Message -->
         {#if error}
