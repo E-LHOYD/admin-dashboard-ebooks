@@ -28,6 +28,7 @@
   let replacementFile = $state(null);
   let replacementInput = $state();
   let saving = $state(false);
+  let copiedId = $state('');
 
   // Search and filter state
   let searchQuery = $state('');
@@ -249,6 +250,21 @@
     }
   }
 
+  // A document id is only useful if it can be lifted out of the table, and it
+  // is too long to retype from a glance at the screen.
+  async function copyDocumentId(id) {
+    try {
+      await navigator.clipboard.writeText(id);
+      copiedId = id;
+      setTimeout(() => {
+        if (copiedId === id) copiedId = '';
+      }, 1500);
+    } catch (error) {
+      console.error('Could not copy the document id:', error);
+      errorMessage = 'Could not copy to the clipboard. Select the id and copy it by hand.';
+    }
+  }
+
   // Logout
   async function logout() {
     try {
@@ -259,11 +275,21 @@
     }
   }
 
-  // Watch for filter and search changes
+  // Watch for filter and search changes.
+  //
+  // Every input is read here rather than left to applyFilters. That function
+  // returns as soon as a book fails a check, so when a search matched nothing
+  // the later filters were never read, and changing one of them did not
+  // re-run this.
   $effect(() => {
-    if (books.length > 0) {
-      applyFilters();
-    }
+    searchQuery;
+    filters.subject;
+    filters.yearLevel;
+    filters.author;
+    filters.releaseDate;
+    filters.publishedDate;
+    books;
+    applyFilters();
   });
 
   // Initialize on component mount
@@ -315,7 +341,7 @@
           <input 
             id="searchInput" 
             type="text" 
-            placeholder="Search title, author, subject, Document ID" 
+            placeholder="Search title, author, subject or document ID" 
             bind:value={searchQuery}
           />
         </div>
@@ -390,6 +416,7 @@
               <th>Release Date</th>
               <th>Published Date</th>
               <th>Book file</th>
+              <th>Document ID</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -416,6 +443,13 @@
                       No file - not readable in app
                     </span>
                   {/if}
+                </td>
+                <td class="id-cell">
+                  <code class="doc-id" title={book.id}>{book.id}</code>
+                  <button
+                    class="table-btn copy-btn"
+                    onclick={() => copyDocumentId(book.id)}
+                  >{copiedId === book.id ? 'Copied' : 'Copy'}</button>
                 </td>
                 <td>
                   <button class="table-btn edit-btn" onclick={() => editBook(book)}>Edit</button>
@@ -566,6 +600,28 @@
   .subject-option input {
     width: auto;
     margin: 0;
+  }
+
+  .id-cell {
+    white-space: nowrap;
+  }
+
+  .doc-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: #52514e;
+    background: #f4f4f2;
+    border: 1px solid #e6e5e1;
+    border-radius: 4px;
+    padding: 2px 6px;
+    user-select: all;
+  }
+
+  .copy-btn {
+    background: #f0f0f0;
+    color: #033047;
+    border: 1px solid #ccc;
+    margin-left: 6px;
   }
 
   .level-group {
