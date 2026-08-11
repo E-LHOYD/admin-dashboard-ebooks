@@ -586,15 +586,15 @@
     align-items: center;
     gap: 8px;
     padding: 7px 9px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     font-size: 13px;
     cursor: pointer;
   }
 
   .subject-option:hover {
-    border-color: #007bff;
-    background: #f8f9ff;
+    border-color: var(--brand);
+    background: var(--brand-tint);
   }
 
   .subject-option input {
@@ -612,7 +612,7 @@
     color: #52514e;
     background: #f4f4f2;
     border: 1px solid #e6e5e1;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     padding: 2px 6px;
     user-select: all;
   }
@@ -644,32 +644,10 @@
     flex-wrap: wrap;
     gap: 8px 16px;
   }
-  
-  .dashboard-container {
-    background-color: white;
-    min-height: 100vh;
-    padding: 20px;
-  }
-
-  .dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #ccc;
-  }
 
   .header-left {
     display: flex;
     flex-direction: column;
-  }
-
-  .dashboard-header h1 {
-    color: #033047;
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: bold;
   }
 
   .user-info {
@@ -678,128 +656,13 @@
     font-size: 0.875rem;
   }
 
-  .header-actions {
-    display: flex;
-    gap: 10px;
-  }
-
-  .register-btn {
-    background: #033047;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-    width: auto;
-  }
-
-  .register-btn:hover {
-    background: #024060;
-  }
-
-  .logout-btn {
-    background: white;
-    color: #033047;
-    border: 2px solid #033047;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-    width: auto;
-  }
-
-  .logout-btn:hover {
-    background: #033047;
-    color: white;
-  }
-
-  .loading {
-    text-align: center;
-    font-size: 1rem;
-    color: #033047;
-    padding: 40px;
-  }
-
-  .stats-section {
-    margin-bottom: 40px;
-  }
-
-  .stats-section h2 {
-    color: #033047;
-    font-size: 1rem;
-    font-weight: bold;
-    margin-bottom: 20px;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-  }
-
-  .stat-card {
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 8;
-    padding: 30px;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  .stat-number {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #033047;
-    margin-bottom: 10px;
-  }
-
-  .stat-label {
-    font-size: 0.875rem;
-    color: #666;
-  }
-
   .banner.error {
     background: #fdecea;
     color: #b3261e;
     border: 1px solid #f5c2c0;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     padding: 12px 16px;
     margin-bottom: 16px;
-  }
-
-  .table-container {
-    overflow-x: auto;
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: 12px 16px;
-    text-align: left;
-    border-bottom: 1px solid #ccc;
-  }
-
-  .data-table th {
-    background: #f8f9fa;
-    font-weight: 600;
-    color: #033047;
-    border-bottom: 2px solid #ccc;
-  }
-
-  .data-table tr:hover {
-    background: #f8f9fa;
   }
 
   .file-cell {
@@ -840,34 +703,6 @@
     font-weight: 600;
   }
 
-  .table-btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.75rem;
-    margin-right: 5px;
-    transition: background-color 0.2s ease;
-  }
-
-  .edit-btn {
-    background: #033047;
-    color: white;
-  }
-
-  .edit-btn:hover {
-    background: #024060;
-  }
-
-  .delete-btn {
-    background: #dc3545;
-    color: white;
-  }
-
-  .delete-btn:hover {
-    background: #c82333;
-  }
-
   .modal-scrim {
     position: fixed;
     inset: 0;
@@ -892,7 +727,7 @@
   .modal {
     position: relative;
     background: #fff;
-    border-radius: 8px;
+    border-radius: var(--radius);
     padding: 24px;
     width: 100%;
     max-width: 560px;
@@ -915,7 +750,7 @@
     width: 100%;
     padding: 10px;
     border: 1px solid #ccc;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     font-size: 0.875rem;
     font-family: inherit;
     box-sizing: border-box;
@@ -928,75 +763,6 @@
     box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
   }
 
-  .field-label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 600;
-    color: #033047;
-  }
-
-  .field-hint {
-    margin: 6px 0 0 0;
-    font-size: 0.8125rem;
-    line-height: 1.5;
-    color: #666;
-  }
-
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-
-  .cancel-btn {
-    background: white;
-    color: #033047;
-    border: 2px solid #033047;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-  }
-
-  .cancel-btn:hover {
-    background: #033047;
-    color: white;
-  }
-
-  .submit-btn {
-    background: #033047;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-  }
-
-  .submit-btn:hover {
-    background: #024060;
-  }
-
-  .filters-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    align-items: flex-end;
-    padding: 20px;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  .filter-group {
-    display: flex;
-    flex-direction: column;
-    min-width: 150px;
-  }
-
   .search-group {
     display: flex;
     flex-direction: column;
@@ -1007,7 +773,7 @@
   .search-group input {
     padding: 8px 12px;
     border: 1px solid #ccc;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 0.875rem;
     background: white;
     transition: border-color 0.2s ease;
@@ -1017,35 +783,5 @@
     outline: none;
     border-color: #033047;
     box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
-  }
-
-  .filter-group label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #555;
-    margin-bottom: 5px;
-  }
-
-  .filter-group select {
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    background: white;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-  }
-
-  .filter-group select:focus {
-    outline: none;
-    border-color: #033047;
-    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
-  }
-
-  .filter-actions {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-left: auto;
   }
 </style>

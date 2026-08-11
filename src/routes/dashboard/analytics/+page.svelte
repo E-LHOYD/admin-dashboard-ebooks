@@ -522,28 +522,6 @@
     color: var(--text-primary);
   }
 
-  .analytics-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-  }
-
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #eee;
-  }
-
-  .header-content h1 { color: #333; margin: 0 0 5px 0; }
-  .breadcrumb { color: #666; font-size: 14px; }
-  .breadcrumb a { color: #007bff; text-decoration: none; }
-  .breadcrumb a:hover { text-decoration: underline; }
-  .header-actions { display: flex; gap: 10px; }
-
   .more-btn {
     margin-top: 14px;
     background: none;
@@ -569,11 +547,9 @@
     margin-bottom: 16px;
   }
 
-  .loading { text-align: center; padding: 50px; font-size: 18px; color: #666; }
-
   .section { margin-bottom: 40px; }
-  .section h2 { color: #333; font-size: 1.05rem; margin-bottom: 16px; }
-  .section h3 { color: #444; font-size: 0.9rem; margin: 0 0 10px 0; }
+  .section h2 { color: var(--text-heading); font-size: 1rem; font-weight: bold; margin-bottom: 20px; }
+  .section h3 { color: var(--text-heading); font-size: 0.9rem; font-weight: bold; margin: 0 0 10px 0; }
 
   .note { margin-top: 10px; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
   .empty { color: var(--text-muted); font-size: 14px; }
@@ -586,17 +562,17 @@
 
   .kpi {
     background: white;
-    border: 1px solid #eee;
-    border-radius: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 18px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow);
   }
 
   .kpi-value { font-size: 30px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
   .kpi-label { margin-top: 6px; font-size: 13px; color: var(--text-secondary); }
   .kpi.warn .kpi-value { color: var(--critical); }
 
-  .chart { background: white; border: 1px solid #eee; border-radius: 10px; padding: 12px; }
+  .chart { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); }
   .chart svg { width: 100%; height: auto; display: block; }
 
   .grid { stroke: var(--grid); stroke-width: 1; }
@@ -635,13 +611,13 @@
   .bar-value { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 
   .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
-  .split-col { background: white; border: 1px solid #eee; border-radius: 10px; padding: 16px; }
+  .split-col { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
 
   .mini-list { margin: 12px 0 0 0; padding-left: 18px; font-size: 13px; color: var(--text-secondary); }
   .mini-list .muted { color: var(--text-muted); list-style: none; margin-left: -18px; }
 
   .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .data-table th, .data-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; }
+  .data-table th, .data-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border-soft); }
   .data-table th { color: var(--text-secondary); font-weight: 600; }
   .data-table td { color: var(--text-primary); }
 

@@ -395,164 +395,36 @@
 <style>
   @import '../style.css';
 
-  .students-container {
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-  }
-
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #eee;
-  }
-
-  .header-content h1 {
-    color: #333;
-    margin: 0 0 5px 0;
-  }
-
-  .breadcrumb {
-    color: #666;
-    font-size: 14px;
-  }
-
-  .breadcrumb a {
-    color: #007bff;
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 10px;
-  }
-
   .dashboard-btn {
-    background: #007bff;
-    color: white;
-    border: none;
+    background: white;
+    color: var(--brand);
+    border: 2px solid var(--brand);
     padding: 10px 20px;
-    border-radius: 5px;
+    border-radius: var(--radius);
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
+    font-size: 0.875rem;
+    font-weight: bold;
   }
 
   .dashboard-btn:hover {
-    background: #0056b3;
+    background: var(--brand);
+    color: white;
   }
 
   .add-btn {
-    background: #28a745;
+    background: var(--brand);
     color: white;
-    border: none;
+    border: 2px solid var(--brand);
     padding: 10px 20px;
-    border-radius: 5px;
+    border-radius: var(--radius);
     cursor: pointer;
-    font-size: 16px;
+    font-size: 0.875rem;
+    font-weight: bold;
   }
 
   .add-btn:hover {
-    background: #218838;
-  }
-
-  .filters-section {
-    margin-bottom: 30px;
-    padding: 20px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  .filters-section h3 {
-    margin: 0 0 20px 0;
-    color: #333;
-    font-size: 18px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-  }
-
-  .filters-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    align-items: flex-end;
-  }
-
-  .filter-group {
-    display: flex;
-    flex-direction: column;
-    min-width: 150px;
-  }
-
-  .filter-group label {
-    font-size: 12px;
-    font-weight: 600;
-    color: #555;
-    margin-bottom: 5px;
-  }
-
-  .filter-group select {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 14px;
-    background: white;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-  }
-
-  .filter-group select:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-  }
-
-  .filter-actions {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-left: auto;
-  }
-
-  .reset-filters-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s ease;
-  }
-
-  .reset-filters-btn:hover {
-    background: #5a6268;
-  }
-
-  .results-count {
-    color: #666;
-    font-size: 14px;
-    font-weight: 500;
-  }
-
-  .table-section {
-    margin-bottom: 40px;
-  }
-
-  .loading {
-    text-align: center;
-    padding: 50px;
-    font-size: 18px;
-    color: #666;
+    background: var(--brand-hover);
+    border-color: var(--brand-hover);
   }
 
   .data-table code {
@@ -574,69 +446,6 @@
 
   .data-table td:nth-child(9) code {
     font-size: 10px;
-  }
-
-  .table-section {
-    margin-bottom: 40px;
-  }
-
-  .table-container {
-    overflow-x: visible;
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: 12px 16px;
-    text-align: left;
-    border-bottom: 1px solid #eee;
-  }
-
-  .data-table th {
-    background: #f8f9fa;
-    font-weight: 600;
-    color: #333;
-    border-bottom: 2px solid #dee2e6;
-  }
-
-  .data-table tr:hover {
-    background: #f8f9fa;
-  }
-
-  .table-btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    margin-right: 5px;
-    transition: background-color 0.2s ease;
-  }
-
-  .edit-btn {
-    background: #007bff;
-    color: white;
-  }
-
-  .edit-btn:hover {
-    background: #0056b3;
-  }
-
-  .delete-btn {
-    background: #dc3545;
-    color: white;
-  }
-
-  .delete-btn:hover {
-    background: #c82333;
   }
 
   .close-btn {

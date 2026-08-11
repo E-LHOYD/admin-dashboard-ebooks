@@ -1,54 +1,137 @@
-.dashboard-container {
+/* Shared look for every dashboard page.
+ *
+ * This file is imported by each page's <style> block. Svelte inlines it
+ * unscoped, so what is written here is global, while a page's own rules are
+ * scoped and therefore win on specificity. Anything a page needs to look
+ * different is kept in that page; anything shared belongs here.
+ *
+ * The design follows /dashboard: navy headings, a solid navy primary button
+ * against an outlined secondary, 8px corners, hairline grey borders and a soft
+ * card shadow. It used to be a mix of that and Bootstrap's default blue, red
+ * and amber, so the same button meant two different things on two pages.
+ */
+
+:root {
+  --brand: #033047;
+  --brand-hover: #024060;
+  --brand-tint: #f3f7f9;
+
+  --text-heading: #033047;
+  --text-body: #333333;
+  --text-muted: #666666;
+
+  --border: #cccccc;
+  --border-soft: #e6e6e6;
+  --surface-alt: #f7f9fa;
+
+  --radius: 8px;
+  --radius-sm: 6px;
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  --danger: #dc3545;
+  --danger-hover: #c82333;
+}
+
+/* ---------- page frame ---------- */
+
+.dashboard-container,
+.upload-container,
+.register-container,
+.analytics-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  background: white;
+  min-height: 100vh;
   font-family: Arial, sans-serif;
+  color: var(--text-body);
 }
 
-.dashboard-header {
+.dashboard-header,
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 2px solid #eee;
+  border-bottom: 2px solid var(--border);
 }
 
-.dashboard-header h1 {
-  color: #333;
+.dashboard-header h1,
+.page-header h1 {
+  color: var(--text-heading);
   margin: 0;
   font-size: 1.25rem;
+  font-weight: bold;
 }
 
-.logout-btn {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
+.breadcrumb {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-top: 5px;
 }
 
-.logout-btn:hover {
-  background: #c82333;
+.breadcrumb a {
+  color: var(--brand);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .loading {
   text-align: center;
-  padding: 50px;
-  font-size: 18px;
-  color: #666;
+  padding: 40px;
+  font-size: 1rem;
+  color: var(--text-heading);
 }
 
-.stats-section, .actions-section, .students-section, .books-section {
+/* ---------- sections ---------- */
+
+.stats-section,
+.actions-section,
+.students-section,
+.books-section,
+.management-section,
+.filters-section,
+.table-section,
+.upload-section {
   margin-bottom: 40px;
 }
 
-.stats-section h2, .actions-section h2, .students-section h2, .books-section h2 {
-  color: #333;
-  margin-bottom: 20px;
+.stats-section h2,
+.actions-section h2,
+.students-section h2,
+.books-section h2,
+.management-section h2,
+.filters-section h2,
+.table-section h2,
+.upload-section h2,
+.upload-card h2 {
+  color: var(--text-heading);
   font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 20px;
 }
+
+.filters-section h3,
+.upload-card h3 {
+  color: var(--text-heading);
+  font-size: 0.95rem;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+/* ---------- cards ---------- */
 
 .stats-grid {
   display: grid;
@@ -58,22 +141,78 @@
 
 .stat-card {
   background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 30px;
   text-align: center;
+  box-shadow: var(--shadow);
 }
 
 .stat-number {
-  font-size: 1.25em;
+  font-size: 1.5rem;
   font-weight: bold;
-  color: #007bff;
+  color: var(--text-heading);
+  margin-bottom: 10px;
 }
 
 .stat-label {
-  color: #666;
-  margin-top: 5px;
+  color: var(--text-muted);
   font-size: 0.875rem;
+}
+
+/* ---------- buttons ---------- */
+
+/* Primary: the one action the page exists for. */
+.register-btn,
+.action-btn,
+.submit-btn {
+  background: var(--brand);
+  color: white;
+  border: 2px solid var(--brand);
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: bold;
+  width: auto;
+}
+
+.register-btn:hover,
+.action-btn:hover,
+.submit-btn:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+}
+
+/* Secondary: everything that steps back or leaves. */
+.logout-btn,
+.cancel-btn,
+.reset-filters-btn {
+  background: white;
+  color: var(--brand);
+  border: 2px solid var(--brand);
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: bold;
+  width: auto;
+}
+
+.logout-btn:hover,
+.cancel-btn:hover,
+.reset-filters-btn:hover {
+  background: var(--brand);
+  color: white;
+}
+
+.register-btn:disabled,
+.action-btn:disabled,
+.submit-btn:disabled,
+.logout-btn:disabled,
+.cancel-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .action-buttons {
@@ -81,107 +220,129 @@
   gap: 15px;
 }
 
-.action-btn {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.action-btn:hover {
-  background: #0056b3;
-}
+/* ---------- tables ---------- */
 
 .table-container {
   overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
   background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .data-table th {
-  background: #f8f9fa;
+  background: var(--surface-alt);
   padding: 12px;
   text-align: left;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #dee2e6;
+  font-size: 0.875rem;
+  color: var(--text-heading);
+  border-bottom: 2px solid var(--border-soft);
+  white-space: nowrap;
 }
 
 .data-table td {
   padding: 12px;
-  border-bottom: 1px solid #dee2e6;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-body);
 }
 
-.data-table tr:hover {
-  background: #f8f9fa;
+.data-table tr:last-child td {
+  border-bottom: none;
 }
 
+.data-table tr:hover td {
+  background: var(--brand-tint);
+}
+
+/* Row actions, sized down from the page-level buttons but the same shapes. */
 .table-btn {
-  padding: 5px 10px;
-  border: none;
-  border-radius: 3px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   margin-right: 5px;
   font-size: 12px;
+  font-weight: 600;
+  background: white;
 }
 
 .edit-btn {
-  background: #ffc107;
-  color: #333;
+  color: var(--brand);
+  border: 1px solid var(--brand);
 }
 
 .edit-btn:hover {
-  background: #e0a800;
-}
-
-.delete-btn {
-  background: #dc3545;
+  background: var(--brand);
   color: white;
 }
 
+.delete-btn {
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
 .delete-btn:hover {
-  background: #c82333;
+  background: var(--danger);
+  color: white;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
+/* ---------- filters ---------- */
+
+.filters-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
   background: white;
-  padding: 30px;
-  border-radius: 8px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
 }
 
-.modal-content h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: #333;
-  font-size: 1rem;
+.filter-group,
+.search-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
+
+/* Search takes the slack; the dropdowns stay wide enough to read an option. */
+.search-group {
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+
+.filter-group {
+  min-width: 170px;
+}
+
+.filter-group label,
+.search-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.results-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ---------- forms ---------- */
 
 .form-grid {
   display: grid;
@@ -194,46 +355,123 @@
   margin-bottom: 15px;
 }
 
-.form-group input, .form-group textarea {
+.form-group label,
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea,
+.filter-group select,
+.filter-group input,
+.search-group input {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 14px;
+  font-family: inherit;
+  color: var(--text-body);
+  background: white;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.filter-group select:focus,
+.filter-group input:focus,
+.search-group input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(3, 48, 71, 0.12);
+}
+
+.form-group input:disabled,
+.form-group select:disabled,
+.form-group textarea:disabled {
+  background: var(--surface-alt);
+  color: var(--text-muted);
 }
 
 .form-group textarea {
   resize: vertical;
 }
 
+.field-hint {
+  margin: 6px 0 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.form-actions,
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
 
-.cancel-btn {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
+/* ---------- messages ---------- */
+
+.error-message,
+.success-message {
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
 }
 
-.cancel-btn:hover {
-  background: #5a6268;
+.error-message {
+  background: #fdecea;
+  color: #b3261e;
+  border: 1px solid #f5c2c0;
 }
 
-.submit-btn {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
+.success-message {
+  background: #eaf6ed;
+  color: #1a6b34;
+  border: 1px solid #bfe3ca;
 }
 
-.submit-btn:hover {
-  background: #218838;
+/* ---------- modal ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  max-width: 600px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--text-heading);
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+@media (max-width: 640px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }

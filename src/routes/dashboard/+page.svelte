@@ -258,132 +258,19 @@
 
 <style>
   @import './style.css';
-  
-  .dashboard-container {
-    background-color: white;
-    min-height: 100vh;
-    padding: 20px;
-  }
 
-  .dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #ccc;
-  }
+  /* Only what is specific to this page. The header, buttons, stat cards and
+     section headings now come from the shared stylesheet. */
 
   .header-left {
     display: flex;
     flex-direction: column;
   }
 
-  .dashboard-header h1 {
-    color: #033047;
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: bold;
-  }
-
   .user-info {
-    color: #666;
+    color: var(--text-muted);
     margin: 5px 0 0 0;
     font-size: 0.875rem;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 10px;
-  }
-
-  .register-btn {
-    background: #033047;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-    width: auto;
-  }
-
-  .register-btn:hover {
-    background: #024060;
-  }
-
-  .logout-btn {
-    background: white;
-    color: #033047;
-    border: 2px solid #033047;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-    width: auto;
-  }
-
-  .logout-btn:hover {
-    background: #033047;
-    color: white;
-  }
-
-  .loading {
-    text-align: center;
-    font-size: 1rem;
-    color: #033047;
-    padding: 40px;
-  }
-
-  .stats-section {
-    margin-bottom: 40px;
-  }
-
-  .stats-section h2 {
-    color: #033047;
-    font-size: 1rem;
-    font-weight: bold;
-    margin-bottom: 20px;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-  }
-
-  .stat-card {
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 8;
-    padding: 30px;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  .stat-number {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #033047;
-    margin-bottom: 10px;
-  }
-
-  .stat-label {
-    font-size: 0.875rem;
-    color: #666;
-  }
-
-  .management-section {
-    margin-bottom: 40px;
-  }
-
-  .management-section h2 {
-    color: #033047;
-    font-size: 1rem;
-    font-weight: bold;
-    margin-bottom: 20px;
   }
 
   .management-grid {
@@ -394,41 +281,41 @@
 
   .management-card {
     background: white;
-    border: 1px solid #ccc;
-    border-radius: 8;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 30px;
     text-decoration: none;
     color: inherit;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: block;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   }
 
   .management-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    border-color: #033047;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-color: var(--brand);
   }
 
   .management-card h3 {
     margin: 0 0 10px 0;
-    color: #033047;
+    color: var(--text-heading);
     font-size: 1.125rem;
     font-weight: bold;
   }
 
   .management-card p {
-    color: #666;
+    color: var(--text-muted);
     margin: 0 0 15px 0;
     font-size: 0.875rem;
   }
 
   .card-stats {
-    background: #f8f9fa;
+    background: var(--surface-alt);
     padding: 16px 20px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 0.875rem;
-    color: #033047;
+    color: var(--text-heading);
     font-weight: 600;
   }
 </style>

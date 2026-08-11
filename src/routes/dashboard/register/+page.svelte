@@ -548,69 +548,11 @@
 <style>
   @import '../style.css';
 
-  .register-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-  }
-
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #eee;
-  }
-
-  .header-content h1 {
-    color: #333;
-    margin: 0 0 5px 0;
-  }
-
-  .breadcrumb {
-    color: #666;
-    font-size: 14px;
-  }
-
-  .breadcrumb a {
-    color: #007bff;
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 10px;
-  }
-
   .form-container {
     background: white;
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  }
-
-  .success-message {
-    background: #d4edda;
-    color: #155724;
-    padding: 15px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    border: 1px solid #c3e6cb;
-  }
-
-  .error-message {
-    background: #f8d7da;
-    color: #721c24;
-    padding: 15px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    border: 1px solid #f5c6cb;
   }
 
   .section-hint {
@@ -630,15 +572,15 @@
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 14px;
     cursor: pointer;
   }
 
   .interest-option:hover {
-    border-color: #007bff;
-    background: #f8f9ff;
+    border-color: var(--brand);
+    background: var(--brand-tint);
   }
 
   /* Once three are picked the rest are disabled, so they should not look
@@ -658,49 +600,12 @@
   }
 
   .form-section h3 {
-    color: #333;
-    margin-bottom: 20px;
+    color: var(--text-heading);
+    font-size: 0.95rem;
+    font-weight: bold;
+    margin: 0 0 16px 0;
     padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
-  }
-
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .form-group label {
-    color: #555;
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
-
-  .form-group input,
-  .form-group select {
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 14px;
-    transition: border-color 0.3s ease;
-  }
-
-  .form-group input:focus,
-  .form-group select:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-  }
-
-  .form-group input:disabled,
-  .form-group select:disabled {
-    background: #f8f9fa;
-    cursor: not-allowed;
+    border-bottom: 1px solid var(--border-soft);
   }
 
   .form-group small {
@@ -743,55 +648,6 @@
 
   .password-toggle-btn:disabled {
     opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .form-actions {
-    display: flex;
-    gap: 15px;
-    justify-content: flex-end;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #eee;
-  }
-
-  .cancel-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.3s ease;
-  }
-
-  .cancel-btn:hover:not(:disabled) {
-    background: #5a6268;
-  }
-
-  .cancel-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .submit-btn {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.3s ease;
-  }
-
-  .submit-btn:hover:not(:disabled) {
-    background: #218838;
-  }
-
-  .submit-btn:disabled {
-    opacity: 0.6;
     cursor: not-allowed;
   }
 </style>

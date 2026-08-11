@@ -343,13 +343,6 @@
     gap: 8px 16px;
   }
 
-  .field-label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #333;
-  }
-
   .subject-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -361,15 +354,15 @@
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 14px;
     cursor: pointer;
   }
 
   .subject-option:hover {
-    border-color: #007bff;
-    background: #f8f9ff;
+    border-color: var(--brand);
+    background: var(--brand-tint);
   }
 
   .subject-option input {
@@ -391,7 +384,7 @@
   }
 
   .file-upload-area:hover {
-    border-color: #007bff;
+    border-color: var(--brand);
     background-color: #f8f9ff;
   }
 
@@ -443,7 +436,7 @@
   .progress-bar.indeterminate .progress-fill {
     width: 40%;
     height: 100%;
-    background: #007bff;
+    background: var(--brand);
     border-radius: 3px;
     animation: slide 1.2s ease-in-out infinite;
   }
@@ -460,178 +453,11 @@
     text-align: center;
   }
 
-
-  .field-hint {
-    margin: 6px 0 0 0;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #666;
-  }
-
-
-  .upload-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-  }
-
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #eee;
-  }
-
-  .header-content h1 {
-    color: #333;
-    margin: 0 0 5px 0;
-  }
-
-  .breadcrumb {
-    color: #666;
-    font-size: 14px;
-  }
-
-  .breadcrumb a {
-    color: #007bff;
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 10px;
-  }
-
-  .upload-section {
-    margin-bottom: 40px;
-  }
-
   .upload-card {
     background: white;
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  }
-
-  .upload-card h2 {
-    margin-top: 0;
-    margin-bottom: 25px;
-    color: #333;
-  }
-
-  .error-message {
-    background: #f8d7da;
-    color: #721c24;
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    border: 1px solid #f5c6cb;
-  }
-
-  .success-message {
-    background: #d4edda;
-    color: #155724;
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    border: 1px solid #c3e6cb;
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    margin-bottom: 20px;
-  }
-
-  .form-group {
-    margin-bottom: 20px;
-  }
-
-  .form-group input, .form-group textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 14px;
-    transition: border-color 0.3s ease;
-  }
-
-  .form-group input:focus, .form-group textarea:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-  }
-
-  .form-group textarea {
-    resize: vertical;
-    min-height: 100px;
-  }
-
-
-
-
-
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 15px;
-    margin-top: 30px;
-  }
-
-  .cancel-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
-  }
-
-  .cancel-btn:hover {
-    background: #5a6268;
-  }
-
-
-  .submit-btn {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
-  }
-
-  .submit-btn:hover:not(:disabled) {
-    background: #218838;
-  }
-
-  .submit-btn:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
   }
 
   @media (max-width: 768px) {
