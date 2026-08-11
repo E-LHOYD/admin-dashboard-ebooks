@@ -37,7 +37,8 @@
     detail: '',
     subjects: [],
     downloadedFrom: '',
-    releaseDate: getTodayDate()
+    releaseDate: getTodayDate(),
+    publishedDate: ''
   });
 
   // Handle file selection
@@ -101,6 +102,7 @@
         subject: bookForm.subjects.join(', '),
         downloadedFrom: bookForm.downloadedFrom,
         releaseDate: bookForm.releaseDate,
+        publishedDate: bookForm.publishedDate,
         fileUrl: uploaded.fileUrl,
         filePath: uploaded.filePath,
         fileName: uploaded.fileName,
@@ -133,7 +135,8 @@
       detail: '',
       subjects: [],
       downloadedFrom: '',
-      releaseDate: getTodayDate()
+      releaseDate: getTodayDate(),
+      publishedDate: ''
     };
     selectedFile = null;
     if (fileInput) fileInput.value = '';
@@ -187,6 +190,7 @@
       <form onsubmit={addBook}>
         <!-- Book file (required) -->
         <div class="form-group">
+          <span class="field-label">Book file *</span>
           <label for="file-upload" class="file-upload-label">
             <div class="file-upload-area">
               {#if selectedFile}
@@ -224,20 +228,12 @@
         <!-- Book Details -->
         <div class="form-grid">
           <div class="form-group">
-            <input 
-              type="text" 
-              placeholder="Book Title *" 
-              bind:value={bookForm.title} 
-              required
-            />
+            <label class="field-label" for="book-title">Book title *</label>
+            <input id="book-title" type="text" bind:value={bookForm.title} required />
           </div>
           <div class="form-group">
-            <input 
-              type="text" 
-              placeholder="Author *" 
-              bind:value={bookForm.author} 
-              required
-            />
+            <label class="field-label" for="book-author">Author *</label>
+            <input id="book-author" type="text" bind:value={bookForm.author} required />
           </div>
         </div>
 
@@ -256,29 +252,24 @@
 
         <div class="form-grid">
           <div class="form-group">
-            <input 
-              type="date" 
-              bind:value={bookForm.releaseDate} 
-              required
-            />
+            <label class="field-label" for="release-date">Release date *</label>
+            <input id="release-date" type="date" bind:value={bookForm.releaseDate} required />
+          </div>
+          <div class="form-group">
+            <label class="field-label" for="published-date">Published date</label>
+            <input id="published-date" type="date" bind:value={bookForm.publishedDate} />
+            <p class="field-hint">When the book itself was published, if it differs from the release date.</p>
           </div>
         </div>
 
         <div class="form-group">
-          <input 
-            type="text" 
-            placeholder="Downloaded From (Optional)" 
-            bind:value={bookForm.downloadedFrom}
-          />
+          <label class="field-label" for="downloaded-from">Downloaded from</label>
+          <input id="downloaded-from" type="text" placeholder="Optional" bind:value={bookForm.downloadedFrom} />
         </div>
 
         <div class="form-group">
-          <textarea 
-            placeholder="Book Details/Description *" 
-            bind:value={bookForm.detail} 
-            rows="4" 
-            required
-          ></textarea>
+          <label class="field-label" for="book-detail">Book details and description *</label>
+          <textarea id="book-detail" bind:value={bookForm.detail} rows="4" required></textarea>
         </div>
 
         {#if uploading}
