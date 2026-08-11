@@ -3,6 +3,14 @@
   import { collection, collectionGroup, getDocs } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
+  import {
+    latestActivityByUser,
+    countActiveSince,
+    startOfToday,
+    minutesAgo,
+    toDate,
+    ACTIVE_NOW_MINUTES
+  } from '$lib/activity';
 
   let loading = $state(true);
   let errorMessage = $state('');
@@ -54,7 +62,7 @@
   loadAll();
 
   // ---------- helpers ----------
-  const asDate = (v) => (v?.toDate ? v.toDate() : v ? new Date(v) : null);
+  const asDate = toDate;
   const dayKey = (d) => (d ? d.toISOString().slice(0, 10) : null);
   const pct = (n) => `${Math.round(n)}%`;
 
@@ -82,6 +90,10 @@
     customShelves.reduce((total, shelf) => total + (shelf.bookIds?.length || 0), 0)
   );
 
+  let latestActivity = $derived(latestActivityByUser(users, progress));
+  let activeToday = $derived(countActiveSince(latestActivity, startOfToday()));
+  let activeNow = $derived(countActiveSince(latestActivity, minutesAgo(ACTIVE_NOW_MINUTES)));
+
   let students = $derived(users.filter((u) => u.role === 'student'));
   let teachers = $derived(users.filter((u) => u.role === 'teacher'));
 
@@ -94,10 +106,12 @@
       d.setDate(d.getDate() - i);
       buckets.set(dayKey(d), new Set());
     }
-    for (const p of progress) {
-      const key = dayKey(asDate(p.lastReadAt));
-      if (key && buckets.has(key) && p.userId) buckets.get(key).add(p.userId);
-    }
+    const record = (userId, date) => {
+      const key = dayKey(date);
+      if (key && buckets.has(key) && userId) buckets.get(key).add(userId);
+    };
+    for (const p of progress) record(p.userId, asDate(p.lastReadAt));
+    for (const u of users) record(u.id, asDate(u.lastSeenAt));
     return [...buckets.entries()].map(([day, set]) => ({ day, count: set.size }));
   });
 
@@ -184,6 +198,8 @@
         <div class="kpi"><div class="kpi-value">{viewedRecords.length}</div><div class="kpi-label">Books viewed</div></div>
         <div class="kpi"><div class="kpi-value">{pct(averagePercent)}</div><div class="kpi-label">Average progress</div></div>
         <div class="kpi"><div class="kpi-value">{shelvedBookCount}</div><div class="kpi-label">Books in created shelves</div></div>
+        <div class="kpi"><div class="kpi-value">{activeNow}</div><div class="kpi-label">Active now (last {ACTIVE_NOW_MINUTES} min)</div></div>
+        <div class="kpi"><div class="kpi-value">{activeToday}</div><div class="kpi-label">Active today</div></div>
         <div class="kpi"><div class="kpi-value">{students.length}</div><div class="kpi-label">Students</div></div>
         <div class="kpi"><div class="kpi-value">{teachers.length}</div><div class="kpi-label">Teachers</div></div>
       </div>
@@ -224,8 +240,8 @@
           </svg>
         </div>
         <p class="note">
-          A reader counts as active on the day their reading progress was last saved,
-          which is the only activity timestamp recorded.
+          Counted from when the app was last opened, or when reading progress was
+          last saved for anyone who read before the app began recording that.
         </p>
       {/if}
     </section>

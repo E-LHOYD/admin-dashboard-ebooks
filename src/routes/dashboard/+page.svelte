@@ -4,11 +4,19 @@
   import { signOut, onAuthStateChanged } from 'firebase/auth';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import {
+    latestActivityByUser,
+    countActiveSince,
+    startOfToday,
+    minutesAgo,
+    ACTIVE_NOW_MINUTES
+  } from '$lib/activity';
 
   // Reactive state variables
   let totalUsers = $state(0);
   let totalBooks = $state(0);
-  let activeUsers = $state(0);
+  let activeToday = $state(0);
+  let activeNow = $state(0);
   let loading = $state(true);
   let currentUser = $state(null);
   let unsubscribe = $state(null);
@@ -136,9 +144,25 @@
         console.error('Error fetching books:', bookError);
       }
 
-      // For now, set active users to a reasonable number
-      // In a real app, you'd track this with presence or last login
-      activeUsers = Math.floor(totalUsers * 0.3); // Assume 30% are active
+      // Active users, measured rather than assumed. Previously this was
+      // totalUsers * 0.3 with a comment admitting it was a placeholder.
+      try {
+        const [usersSnapshot, progressSnapshot] = await Promise.all([
+          getDocs(collection(db, 'users')),
+          getDocs(collection(db, 'readingProgress'))
+        ]);
+
+        const allUsers = usersSnapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const progress = progressSnapshot.docs.map((d) => d.data());
+        const latest = latestActivityByUser(allUsers, progress);
+
+        activeToday = countActiveSince(latest, startOfToday());
+        activeNow = countActiveSince(latest, minutesAgo(ACTIVE_NOW_MINUTES));
+      } catch (activityError) {
+        console.error('Error working out active users:', activityError);
+        activeToday = 0;
+        activeNow = 0;
+      }
 
       loading = false;
     } catch (error) {
@@ -204,8 +228,12 @@
           <div class="stat-label">Books Uploaded</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number">{activeUsers}</div>
-          <div class="stat-label">Active Users</div>
+          <div class="stat-number">{activeToday}</div>
+          <div class="stat-label">Active today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{activeNow}</div>
+          <div class="stat-label">Active in the last {ACTIVE_NOW_MINUTES} min</div>
         </div>
       </div>
     </section>
