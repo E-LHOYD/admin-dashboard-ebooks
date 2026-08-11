@@ -6,7 +6,6 @@
   import {
     latestActivityByUser,
     countActiveSince,
-    startOfToday,
     minutesAgo,
     toDate,
     ACTIVE_NOW_MINUTES
@@ -91,7 +90,6 @@
   );
 
   let latestActivity = $derived(latestActivityByUser(users, progress));
-  let activeToday = $derived(countActiveSince(latestActivity, startOfToday()));
   let activeNow = $derived(countActiveSince(latestActivity, minutesAgo(ACTIVE_NOW_MINUTES)));
 
   let students = $derived(users.filter((u) => u.role === 'student'));
@@ -198,8 +196,7 @@
         <div class="kpi"><div class="kpi-value">{viewedRecords.length}</div><div class="kpi-label">Books viewed</div></div>
         <div class="kpi"><div class="kpi-value">{pct(averagePercent)}</div><div class="kpi-label">Average progress</div></div>
         <div class="kpi"><div class="kpi-value">{shelvedBookCount}</div><div class="kpi-label">Books in created shelves</div></div>
-        <div class="kpi"><div class="kpi-value">{activeNow}</div><div class="kpi-label">Active now (last {ACTIVE_NOW_MINUTES} min)</div></div>
-        <div class="kpi"><div class="kpi-value">{activeToday}</div><div class="kpi-label">Active today</div></div>
+        <div class="kpi"><div class="kpi-value">{activeNow}</div><div class="kpi-label">Active users (last {ACTIVE_NOW_MINUTES} min)</div></div>
         <div class="kpi"><div class="kpi-value">{students.length}</div><div class="kpi-label">Students</div></div>
         <div class="kpi"><div class="kpi-value">{teachers.length}</div><div class="kpi-label">Teachers</div></div>
       </div>

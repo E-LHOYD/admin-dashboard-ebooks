@@ -12,7 +12,9 @@
 // The second is the fallback for anyone who read before the app started
 // recording lastSeenAt.
 
-export const ACTIVE_NOW_MINUTES = 15;
+// The window that counts as "right now". The app's presence write is throttled
+// to less than this, so anyone genuinely using it lands inside the window.
+export const ACTIVE_NOW_MINUTES = 5;
 
 /** Firestore Timestamp, Date or ISO string to Date. */
 export function toDate(value) {

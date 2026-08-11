@@ -7,7 +7,6 @@
   import {
     latestActivityByUser,
     countActiveSince,
-    startOfToday,
     minutesAgo,
     ACTIVE_NOW_MINUTES
   } from '$lib/activity';
@@ -15,7 +14,6 @@
   // Reactive state variables
   let totalUsers = $state(0);
   let totalBooks = $state(0);
-  let activeToday = $state(0);
   let activeNow = $state(0);
   let loading = $state(true);
   let currentUser = $state(null);
@@ -156,11 +154,9 @@
         const progress = progressSnapshot.docs.map((d) => d.data());
         const latest = latestActivityByUser(allUsers, progress);
 
-        activeToday = countActiveSince(latest, startOfToday());
         activeNow = countActiveSince(latest, minutesAgo(ACTIVE_NOW_MINUTES));
       } catch (activityError) {
         console.error('Error working out active users:', activityError);
-        activeToday = 0;
         activeNow = 0;
       }
 
@@ -228,12 +224,8 @@
           <div class="stat-label">Books Uploaded</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number">{activeToday}</div>
-          <div class="stat-label">Active today</div>
-        </div>
-        <div class="stat-card">
           <div class="stat-number">{activeNow}</div>
-          <div class="stat-label">Active in the last {ACTIVE_NOW_MINUTES} min</div>
+          <div class="stat-label">Active users (last {ACTIVE_NOW_MINUTES} min)</div>
         </div>
       </div>
     </section>
