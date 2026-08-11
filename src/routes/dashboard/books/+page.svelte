@@ -151,17 +151,15 @@
   loadBooks();
 </script>
 
-<div class="books-container">
+<div class="dashboard-container">
   <!-- Header -->
-  <header class="page-header">
-    <div class="header-content">
-      <h1>Books Management</h1>
-      <nav class="breadcrumb">
-        <a href="/dashboard">Dashboard</a> / Books
-      </nav>
+  <header class="dashboard-header">
+    <div class="header-left">
+      <h1>Gardner E-Books Library Dashboard</h1>
+      <p class="user-info">Books Management</p>
     </div>
     <div class="header-actions">
-      <a href="/dashboard/upload" class="upload-btn">📤 Upload Book</a>
+      <button class="register-btn" onclick={() => goto('/dashboard/upload')}>Upload Book</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
   </header>
@@ -173,8 +171,20 @@
   {#if loading}
     <div class="loading">Loading books...</div>
   {:else}
+    <!-- Statistics Cards -->
+    <section class="stats-section">
+      <h2>Overview</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">{books.length}</div>
+          <div class="stat-label">Total Books</div>
+        </div>
+      </div>
+    </section>
+
     <!-- Books Table -->
-    <section class="table-section">
+    <section class="stats-section">
+      <h2>Books List</h2>
       <div class="table-container">
         <table class="data-table">
           <thead>
@@ -288,8 +298,8 @@
           </div>
 
           <div class="modal-actions">
-            <button type="button" class="table-btn" onclick={cancelEdit} disabled={saving}>Cancel</button>
-            <button type="submit" class="table-btn edit-btn" disabled={saving}>
+            <button type="button" class="cancel-btn" onclick={cancelEdit} disabled={saving}>Cancel</button>
+            <button type="submit" class="submit-btn" disabled={saving}>
               {saving ? 'Saving...' : 'Save changes'}
             </button>
           </div>
@@ -302,6 +312,122 @@
 
 <style>
   @import '../style.css';
+  
+  .dashboard-container {
+    background-color: white;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #ccc;
+  }
+
+  .header-left {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dashboard-header h1 {
+    color: #033047;
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: bold;
+  }
+
+  .user-info {
+    color: #666;
+    margin: 5px 0 0 0;
+    font-size: 0.875rem;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .register-btn {
+    background: #033047;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+    width: auto;
+  }
+
+  .register-btn:hover {
+    background: #024060;
+  }
+
+  .logout-btn {
+    background: white;
+    color: #033047;
+    border: 2px solid #033047;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+    width: auto;
+  }
+
+  .logout-btn:hover {
+    background: #033047;
+    color: white;
+  }
+
+  .loading {
+    text-align: center;
+    font-size: 1rem;
+    color: #033047;
+    padding: 40px;
+  }
+
+  .stats-section {
+    margin-bottom: 40px;
+  }
+
+  .stats-section h2 {
+    color: #033047;
+    font-size: 1rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .stat-card {
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #033047;
+    margin-bottom: 10px;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: #666;
+  }
 
   .banner.error {
     background: #fdecea;
@@ -312,13 +438,45 @@
     margin-bottom: 16px;
   }
 
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .data-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #033047;
+    border-bottom: 2px solid #ccc;
+  }
+
+  .data-table tr:hover {
+    background: #f8f9fa;
+  }
+
   .file-cell {
     max-width: 280px;
   }
 
   .file-name-link {
     display: block;
-    color: #0f7b3f;
+    color: #033047;
     font-weight: 600;
     text-decoration: none;
     word-break: break-word;
@@ -332,12 +490,12 @@
     display: flex;
     gap: 10px;
     margin-top: 4px;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: #666;
   }
 
   .file-meta a {
-    color: #007bff;
+    color: #033047;
     text-decoration: none;
   }
 
@@ -345,18 +503,37 @@
     text-decoration: underline;
   }
 
-  .current-file a {
-    color: #007bff;
-  }
-
-  .missing-file {
-    color: #b3261e;
-    font-weight: 600;
-  }
-
   .file-missing {
     color: #b3261e;
     font-weight: 600;
+  }
+
+  .table-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    margin-right: 5px;
+    transition: background-color 0.2s ease;
+  }
+
+  .edit-btn {
+    background: #033047;
+    color: white;
+  }
+
+  .edit-btn:hover {
+    background: #024060;
+  }
+
+  .delete-btn {
+    background: #dc3545;
+    color: white;
+  }
+
+  .delete-btn:hover {
+    background: #c82333;
   }
 
   .modal-scrim {
@@ -392,6 +569,9 @@
 
   .modal h2 {
     margin-top: 0;
+    color: #033047;
+    font-size: 1.125rem;
+    font-weight: bold;
   }
 
   .modal .form-group {
@@ -404,25 +584,31 @@
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 5px;
-    font-size: 14px;
+    font-size: 0.875rem;
     font-family: inherit;
     box-sizing: border-box;
+  }
+
+  .modal input:focus,
+  .modal textarea:focus {
+    outline: none;
+    border-color: #033047;
+    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
   }
 
   .field-label {
     display: block;
     margin-bottom: 6px;
     font-weight: 600;
-    color: #333;
+    color: #033047;
   }
 
   .field-hint {
     margin: 6px 0 0 0;
-    font-size: 13px;
+    font-size: 0.8125rem;
     line-height: 1.5;
     color: #666;
   }
-
 
   .modal-actions {
     display: flex;
@@ -430,74 +616,34 @@
     gap: 10px;
   }
 
-  .books-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: Arial, sans-serif;
+  .cancel-btn {
+    background: white;
+    color: #033047;
+    border: 2px solid #033047;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
   }
 
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #eee;
+  .cancel-btn:hover {
+    background: #033047;
+    color: white;
   }
 
-  .header-content h1 {
-    color: #333;
-    margin: 0 0 5px 0;
-  }
-
-  .breadcrumb {
-    color: #666;
-    font-size: 14px;
-  }
-
-  .breadcrumb a {
-    color: #007bff;
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 10px;
-  }
-
-  
-  .upload-btn {
-    background: #17a2b8;
+  .submit-btn {
+    background: #033047;
     color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 16px;
-    text-decoration: none;
-    display: inline-block;
-    transition: background-color 0.3s ease;
+    font-size: 0.875rem;
+    font-weight: bold;
   }
 
-  .upload-btn:hover {
-    background: #138496;
-    text-decoration: none;
-    color: white;
-  }
-
-  .table-section {
-    margin-bottom: 40px;
-  }
-
-  .loading {
-    text-align: center;
-    padding: 50px;
-    font-size: 18px;
-    color: #666;
+  .submit-btn:hover {
+    background: #024060;
   }
 </style>

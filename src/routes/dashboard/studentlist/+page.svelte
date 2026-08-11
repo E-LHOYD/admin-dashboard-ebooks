@@ -191,22 +191,15 @@
   loadUsers();
 </script>
 
-<div class="students-container">
+<div class="dashboard-container">
   <!-- Header -->
-  <header class="page-header">
-    <div class="header-content">
-      <h1>Users Management</h1>
-      <nav class="breadcrumb">
-        <a href="/dashboard">Dashboard</a> / Users
-      </nav>
+  <header class="dashboard-header">
+    <div class="header-left">
+      <h1>Gardner E-Books Library Dashboard</h1>
+      <p class="user-info">Users Management</p>
     </div>
     <div class="header-actions">
-      <button class="dashboard-btn" onclick={() => goto('/dashboard')}>
-        Return to Dashboard
-      </button>
-      <button class="add-btn" onclick={() => goto('/dashboard/register')}>
-        + Register User
-      </button>
+      <button class="register-btn" onclick={() => goto('/dashboard/register')}>Register User</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
   </header>
@@ -214,9 +207,24 @@
   {#if loading}
     <div class="loading">Loading users...</div>
   {:else}
+    <!-- Statistics Cards -->
+    <section class="stats-section">
+      <h2>Overview</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">{users.length}</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{filteredUsers.length}</div>
+          <div class="stat-label">Filtered Users</div>
+        </div>
+      </div>
+    </section>
+
     <!-- Filters Section -->
-    <section class="filters-section">
-      <h3>Filters</h3>
+    <section class="stats-section">
+      <h2>Filters</h2>
       <div class="filters-container">
         <div class="filter-group">
           <label for="roleFilter">Role</label>
@@ -284,14 +292,14 @@
         </div>
         
         <div class="filter-actions">
-          <button class="reset-filters-btn" onclick={resetFilters}>Reset Filters</button>
-          <span class="results-count">Showing {filteredUsers.length} of {users.length} users</span>
+          <button class="register-btn" onclick={resetFilters}>Reset Filters</button>
         </div>
       </div>
     </section>
 
     <!-- Users Table -->
-    <section class="table-section">
+    <section class="stats-section">
+      <h2>Users List</h2>
       <div class="table-container">
         <table class="data-table">
           <thead>
@@ -375,7 +383,7 @@
           </div>
           <div class="modal-actions">
             <button type="button" class="cancel-btn" onclick={() => showForm = false}>Cancel</button>
-            <button type="submit" class="submit-btn">{editingStudent ? 'Update Student' : 'Add Student'}</button>
+            <button type="submit" class="submit-btn">{editingUser ? 'Update User' : 'Add User'}</button>
           </div>
         </form>
       </div>
@@ -385,40 +393,38 @@
 
 <style>
   @import '../style.css';
-
-  .students-container {
-    max-width: 1600px;
-    margin: 0 auto;
+  
+  .dashboard-container {
+    background-color: white;
+    min-height: 100vh;
     padding: 20px;
-    font-family: Arial, sans-serif;
   }
 
-  .page-header {
+  .dashboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
     padding-bottom: 20px;
-    border-bottom: 2px solid #eee;
+    border-bottom: 2px solid #ccc;
   }
 
-  .header-content h1 {
-    color: #333;
-    margin: 0 0 5px 0;
+  .header-left {
+    display: flex;
+    flex-direction: column;
   }
 
-  .breadcrumb {
+  .dashboard-header h1 {
+    color: #033047;
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: bold;
+  }
+
+  .user-info {
     color: #666;
-    font-size: 14px;
-  }
-
-  .breadcrumb a {
-    color: #007bff;
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
+    margin: 5px 0 0 0;
+    font-size: 0.875rem;
   }
 
   .header-actions {
@@ -426,49 +432,82 @@
     gap: 10px;
   }
 
-  .dashboard-btn {
-    background: #007bff;
+  .register-btn {
+    background: #033047;
     color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
+    font-size: 0.875rem;
+    font-weight: bold;
+    width: auto;
   }
 
-  .dashboard-btn:hover {
-    background: #0056b3;
+  .register-btn:hover {
+    background: #024060;
   }
 
-  .add-btn {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-  }
-
-  .add-btn:hover {
-    background: #218838;
-  }
-
-  .filters-section {
-    margin-bottom: 30px;
-    padding: 20px;
+  .logout-btn {
     background: white;
-    border-radius: 12px;
+    color: #033047;
+    border: 2px solid #033047;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+    width: auto;
+  }
+
+  .logout-btn:hover {
+    background: #033047;
+    color: white;
+  }
+
+  .loading {
+    text-align: center;
+    font-size: 1rem;
+    color: #033047;
+    padding: 40px;
+  }
+
+  .stats-section {
+    margin-bottom: 40px;
+  }
+
+  .stats-section h2 {
+    color: #033047;
+    font-size: 1rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .stat-card {
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8;
+    padding: 30px;
+    text-align: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
-  .filters-section h3 {
-    margin: 0 0 20px 0;
-    color: #333;
-    font-size: 18px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
+  .stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #033047;
+    margin-bottom: 10px;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: #666;
   }
 
   .filters-container {
@@ -476,6 +515,11 @@
     flex-wrap: wrap;
     gap: 15px;
     align-items: flex-end;
+    padding: 20px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
   .filter-group {
@@ -485,7 +529,7 @@
   }
 
   .filter-group label {
-    font-size: 12px;
+    font-size: 0.875rem;
     font-weight: 600;
     color: #555;
     margin-bottom: 5px;
@@ -493,9 +537,9 @@
 
   .filter-group select {
     padding: 8px 12px;
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 0.875rem;
     background: white;
     cursor: pointer;
     transition: border-color 0.2s ease;
@@ -503,8 +547,8 @@
 
   .filter-group select:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    border-color: #033047;
+    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
   }
 
   .filter-actions {
@@ -514,44 +558,44 @@
     margin-left: auto;
   }
 
-  .reset-filters-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s ease;
+  .table-container {
+    overflow-x: auto;
   }
 
-  .reset-filters-btn:hover {
-    background: #5a6268;
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
-  .results-count {
-    color: #666;
-    font-size: 14px;
-    font-weight: 500;
+  .data-table th,
+  .data-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #ccc;
   }
 
-  .table-section {
-    margin-bottom: 40px;
+  .data-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #033047;
+    border-bottom: 2px solid #ccc;
   }
 
-  .loading {
-    text-align: center;
-    padding: 50px;
-    font-size: 18px;
-    color: #666;
+  .data-table tr:hover {
+    background: #f8f9fa;
   }
 
   .data-table code {
     background: #f8f9fa;
     padding: 2px 6px;
     border-radius: 3px;
-    font-size: 11px;
-    color: #e83e8c;
+    font-size: 0.75rem;
+    color: #033047;
     font-family: 'Courier New', monospace;
   }
 
@@ -564,42 +608,7 @@
   }
 
   .data-table td:nth-child(9) code {
-    font-size: 10px;
-  }
-
-  .table-section {
-    margin-bottom: 40px;
-  }
-
-  .table-container {
-    overflow-x: visible;
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: 12px 16px;
-    text-align: left;
-    border-bottom: 1px solid #eee;
-  }
-
-  .data-table th {
-    background: #f8f9fa;
-    font-weight: 600;
-    color: #333;
-    border-bottom: 2px solid #dee2e6;
-  }
-
-  .data-table tr:hover {
-    background: #f8f9fa;
+    font-size: 0.625rem;
   }
 
   .table-btn {
@@ -607,18 +616,18 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.75rem;
     margin-right: 5px;
     transition: background-color 0.2s ease;
   }
 
   .edit-btn {
-    background: #007bff;
+    background: #033047;
     color: white;
   }
 
   .edit-btn:hover {
-    background: #0056b3;
+    background: #024060;
   }
 
   .delete-btn {
@@ -633,7 +642,7 @@
   .close-btn {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 1.5rem;
     cursor: pointer;
     color: #666;
     padding: 0;
@@ -652,7 +661,96 @@
   }
 
   .close-btn:focus {
-    outline: 2px solid #007bff;
+    outline: 2px solid #033047;
     outline-offset: 2px;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    overflow-y: auto;
+    z-index: 100;
+  }
+
+  .modal-content {
+    position: relative;
+    background: #fff;
+    border-radius: 8px;
+    padding: 24px;
+    width: 100%;
+    max-width: 560px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  }
+
+  .modal-content h3 {
+    margin-top: 0;
+    color: #033047;
+    font-size: 1.125rem;
+    font-weight: bold;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
+  .form-grid input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 0.875rem;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+
+  .form-grid input:focus {
+    outline: none;
+    border-color: #033047;
+    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .cancel-btn {
+    background: white;
+    color: #033047;
+    border: 2px solid #033047;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+  }
+
+  .cancel-btn:hover {
+    background: #033047;
+    color: white;
+  }
+
+  .submit-btn {
+    background: #033047;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+  }
+
+  .submit-btn:hover {
+    background: #024060;
   }
 </style>
