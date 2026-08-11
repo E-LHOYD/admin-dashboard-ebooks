@@ -1,0 +1,516 @@
+<script>
+  import { auth, db } from '$lib/firebase';
+  import { collection, collectionGroup, getDocs } from 'firebase/firestore';
+  import { signOut } from 'firebase/auth';
+  import { goto } from '$app/navigation';
+
+  let loading = $state(true);
+  let errorMessage = $state('');
+  let showTables = $state(false);
+
+  // Raw collections
+  let users = $state([]);
+  let books = $state([]);
+  let progress = $state([]);
+  let customShelves = $state([]);
+
+  const DAYS = 14;
+
+  async function loadAll() {
+    loading = true;
+    errorMessage = '';
+    try {
+      const [userSnap, bookSnap, progressSnap] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'books')),
+        getDocs(collection(db, 'readingProgress'))
+      ]);
+
+      users = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      books = bookSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      progress = progressSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+      // Shelves live at shelves/{userId}/userShelves/{shelfId}, so they can only
+      // be read across all users with a collection group query.
+      try {
+        const shelfSnap = await getDocs(collectionGroup(db, 'userShelves'));
+        customShelves = shelfSnap.docs
+          .map((d) => d.data())
+          .filter((s) => !s.isReadShelf && !s.isViewedShelf);
+      } catch (shelfError) {
+        // A collection group query can need its own index; the rest of the page
+        // is still worth showing if this one part fails.
+        console.error('Could not read shelves:', shelfError);
+        customShelves = [];
+      }
+    } catch (error) {
+      console.error('Analytics load failed:', error);
+      errorMessage = 'Could not load analytics: ' + error.message;
+    } finally {
+      loading = false;
+    }
+  }
+
+  loadAll();
+
+  // ---------- helpers ----------
+  const asDate = (v) => (v?.toDate ? v.toDate() : v ? new Date(v) : null);
+  const dayKey = (d) => (d ? d.toISOString().slice(0, 10) : null);
+  const pct = (n) => `${Math.round(n)}%`;
+
+  function tally(items, keyFn) {
+    const map = new Map();
+    for (const item of items) {
+      const key = keyFn(item);
+      if (!key) continue;
+      map.set(key, (map.get(key) || 0) + 1);
+    }
+    return [...map.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
+  }
+
+  // ---------- headline figures ----------
+  let booksById = $derived(new Map(books.map((b) => [b.id, b])));
+  let readRecords = $derived(progress.filter((p) => p.status === 'read'));
+  let viewedRecords = $derived(progress.filter((p) => p.status === 'viewed'));
+
+  let averagePercent = $derived.by(() => {
+    const values = progress.map((p) => p.percentage).filter((v) => typeof v === 'number');
+    return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+  });
+
+  let shelvedBookCount = $derived(
+    customShelves.reduce((total, shelf) => total + (shelf.bookIds?.length || 0), 0)
+  );
+
+  let students = $derived(users.filter((u) => u.role === 'student'));
+  let teachers = $derived(users.filter((u) => u.role === 'teacher'));
+
+  // ---------- active readers per day ----------
+  let activeByDay = $derived.by(() => {
+    const buckets = new Map();
+    for (let i = DAYS - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - i);
+      buckets.set(dayKey(d), new Set());
+    }
+    for (const p of progress) {
+      const key = dayKey(asDate(p.lastReadAt));
+      if (key && buckets.has(key) && p.userId) buckets.get(key).add(p.userId);
+    }
+    return [...buckets.entries()].map(([day, set]) => ({ day, count: set.size }));
+  });
+
+  let peakActive = $derived(Math.max(1, ...activeByDay.map((d) => d.count)));
+
+  // ---------- subjects ----------
+  let subjectRows = $derived.by(() => {
+    const map = new Map();
+    for (const p of progress) {
+      const subject = booksById.get(p.bookId)?.subject || 'Unspecified';
+      if (!map.has(subject)) map.set(subject, { label: subject, read: 0, viewed: 0 });
+      if (p.status === 'read') map.get(subject).read++;
+      else map.get(subject).viewed++;
+    }
+    return [...map.values()]
+      .map((r) => ({ ...r, total: r.read + r.viewed }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8);
+  });
+
+  let subjectMax = $derived(Math.max(1, ...subjectRows.map((r) => r.total)));
+
+  // ---------- most opened books ----------
+  let topBooks = $derived.by(() => {
+    const map = new Map();
+    for (const p of progress) {
+      const title = booksById.get(p.bookId)?.title || 'Removed book';
+      map.set(title, (map.get(title) || 0) + 1);
+    }
+    return [...map.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  });
+
+  let topBookMax = $derived(Math.max(1, ...topBooks.map((b) => b.count)));
+
+  // ---------- academic breakdown ----------
+  let strands = $derived(tally(students.filter((s) => s.studentType === 'senior-high'), (s) => s.strand));
+  let courses = $derived(tally(students.filter((s) => s.studentType === 'college'), (s) => s.course));
+  let levels = $derived(tally(students, (s) => (s.grade ? `Grade ${s.grade}` : s.year ? `Year ${s.year}` : null)));
+
+  // ---------- things worth acting on ----------
+  let booksWithoutFile = $derived(books.filter((b) => !b.fileUrl));
+  let openedBookIds = $derived(new Set(progress.map((p) => p.bookId)));
+  let neverOpened = $derived(books.filter((b) => !openedBookIds.has(b.id)));
+
+  async function logout() {
+    try {
+      await signOut(auth);
+      goto('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  }
+</script>
+
+<div class="analytics-container viz-root">
+  <header class="page-header">
+    <div class="header-content">
+      <h1>Analytics</h1>
+      <nav class="breadcrumb"><a href="/dashboard">Dashboard</a> / Analytics</nav>
+    </div>
+    <div class="header-actions">
+      <button class="table-toggle" onclick={() => (showTables = !showTables)}>
+        {showTables ? 'Hide tables' : 'Show tables'}
+      </button>
+      <button class="logout-btn" onclick={logout}>Logout</button>
+    </div>
+  </header>
+
+  {#if errorMessage}
+    <div class="banner error">{errorMessage}</div>
+  {/if}
+
+  {#if loading}
+    <div class="loading">Loading analytics…</div>
+  {:else}
+    <!-- Headline figures -->
+    <section class="section">
+      <h2>At a glance</h2>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-value">{readRecords.length}</div><div class="kpi-label">Books read</div></div>
+        <div class="kpi"><div class="kpi-value">{viewedRecords.length}</div><div class="kpi-label">Books viewed</div></div>
+        <div class="kpi"><div class="kpi-value">{pct(averagePercent)}</div><div class="kpi-label">Average progress</div></div>
+        <div class="kpi"><div class="kpi-value">{shelvedBookCount}</div><div class="kpi-label">Books in created shelves</div></div>
+        <div class="kpi"><div class="kpi-value">{students.length}</div><div class="kpi-label">Students</div></div>
+        <div class="kpi"><div class="kpi-value">{teachers.length}</div><div class="kpi-label">Teachers</div></div>
+      </div>
+      <p class="note">
+        Read and viewed are counted per book per reader. A book counts as read once a
+        reader passes 10% of it, and as viewed below that.
+      </p>
+    </section>
+
+    <!-- Active readers -->
+    <section class="section">
+      <h2>Active readers per day</h2>
+      {#if activeByDay.every((d) => d.count === 0)}
+        <p class="empty">No reading activity recorded in the last {DAYS} days.</p>
+      {:else}
+        <div class="chart">
+          <svg viewBox="0 0 720 200" role="img" aria-label="Active readers per day over the last {DAYS} days">
+            {#each [0, 0.5, 1] as g}
+              <line class="grid" x1="40" x2="710" y1={20 + g * 140} y2={20 + g * 140} />
+              <text class="axis" x="32" y={24 + g * 140} text-anchor="end">{Math.round(peakActive * (1 - g))}</text>
+            {/each}
+            <polyline
+              class="line"
+              points={activeByDay
+                .map((d, i) => `${40 + (i * 670) / Math.max(1, activeByDay.length - 1)},${160 - (d.count / peakActive) * 140}`)
+                .join(' ')}
+            />
+            {#each activeByDay as d, i}
+              <circle
+                class="dot"
+                cx={40 + (i * 670) / Math.max(1, activeByDay.length - 1)}
+                cy={160 - (d.count / peakActive) * 140}
+                r="4"
+              ><title>{d.day}: {d.count} reader{d.count === 1 ? '' : 's'}</title></circle>
+            {/each}
+            <text class="axis" x="40" y="185">{activeByDay[0]?.day.slice(5)}</text>
+            <text class="axis" x="710" y="185" text-anchor="end">{activeByDay.at(-1)?.day.slice(5)}</text>
+          </svg>
+        </div>
+        <p class="note">
+          A reader counts as active on the day their reading progress was last saved,
+          which is the only activity timestamp recorded.
+        </p>
+      {/if}
+    </section>
+
+    <!-- Subjects -->
+    <section class="section">
+      <h2>Subjects read and viewed</h2>
+      {#if subjectRows.length === 0}
+        <p class="empty">No reading activity yet.</p>
+      {:else}
+        <div class="legend">
+          <span class="key"><i class="swatch s1"></i>Read</span>
+          <span class="key"><i class="swatch s2"></i>Viewed</span>
+        </div>
+        <div class="bars">
+          {#each subjectRows as row}
+            <div class="bar-row">
+              <div class="bar-label" title={row.label}>{row.label}</div>
+              <div class="bar-track">
+                {#if row.read}
+                  <div class="seg s1" style="width:{(row.read / subjectMax) * 100}%" title="{row.read} read"></div>
+                {/if}
+                {#if row.viewed}
+                  <div class="seg s2" style="width:{(row.viewed / subjectMax) * 100}%" title="{row.viewed} viewed"></div>
+                {/if}
+              </div>
+              <div class="bar-value">{row.read} / {row.viewed}</div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
+
+    <!-- Most opened -->
+    <section class="section">
+      <h2>Most opened books</h2>
+      {#if topBooks.length === 0}
+        <p class="empty">No books have been opened yet.</p>
+      {:else}
+        <div class="bars">
+          {#each topBooks as row}
+            <div class="bar-row">
+              <div class="bar-label" title={row.label}>{row.label}</div>
+              <div class="bar-track">
+                <div class="seg seq" style="width:{(row.count / topBookMax) * 100}%"></div>
+              </div>
+              <div class="bar-value">{row.count}</div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
+
+    <!-- Academic breakdown -->
+    <section class="section">
+      <h2>Student academic details</h2>
+      <div class="split">
+        {#each [{ title: 'Senior high strands', rows: strands }, { title: 'College courses', rows: courses }, { title: 'Grade and year levels', rows: levels }] as group}
+          <div class="split-col">
+            <h3>{group.title}</h3>
+            {#if group.rows.length === 0}
+              <p class="empty">None recorded.</p>
+            {:else}
+              <div class="bars compact">
+                {#each group.rows as row}
+                  <div class="bar-row">
+                    <div class="bar-label" title={row.label}>{row.label}</div>
+                    <div class="bar-track">
+                      <div
+                        class="seg seq"
+                        style="width:{(row.count / Math.max(1, ...group.rows.map((r) => r.count))) * 100}%"
+                      ></div>
+                    </div>
+                    <div class="bar-value">{row.count}</div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </section>
+
+    <!-- Actionable -->
+    <section class="section">
+      <h2>Needs attention</h2>
+      <div class="kpi-row">
+        <div class="kpi warn">
+          <div class="kpi-value">{booksWithoutFile.length}</div>
+          <div class="kpi-label">Books with no file — unreadable in the app</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-value">{neverOpened.length}</div>
+          <div class="kpi-label">Books nobody has opened</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-value">{books.length}</div>
+          <div class="kpi-label">Books in the library</div>
+        </div>
+      </div>
+      {#if booksWithoutFile.length > 0}
+        <ul class="mini-list">
+          {#each booksWithoutFile.slice(0, 6) as book}
+            <li>{book.title}</li>
+          {/each}
+          {#if booksWithoutFile.length > 6}<li class="muted">and {booksWithoutFile.length - 6} more</li>{/if}
+        </ul>
+      {/if}
+    </section>
+
+    {#if showTables}
+      <section class="section">
+        <h2>Tables</h2>
+        <div class="split">
+          <div class="split-col">
+            <h3>Subjects</h3>
+            <table class="data-table">
+              <thead><tr><th>Subject</th><th>Read</th><th>Viewed</th></tr></thead>
+              <tbody>
+                {#each subjectRows as r}<tr><td>{r.label}</td><td>{r.read}</td><td>{r.viewed}</td></tr>{/each}
+              </tbody>
+            </table>
+          </div>
+          <div class="split-col">
+            <h3>Active readers</h3>
+            <table class="data-table">
+              <thead><tr><th>Day</th><th>Readers</th></tr></thead>
+              <tbody>
+                {#each activeByDay as d}<tr><td>{d.day}</td><td>{d.count}</td></tr>{/each}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    {/if}
+  {/if}
+</div>
+
+<style>
+  @import '../style.css';
+
+  /* Palette roles, so light and dark swap in one place. */
+  .viz-root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #6f6e6a;
+    --grid: #e6e5e1;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --sequential: #2a78d6;
+    --critical: #d03b3b;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme='light'])) .viz-root {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #a3a29a;
+      --grid: #383835;
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --sequential: #3987e5;
+    }
+  }
+
+  .analytics-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #eee;
+  }
+
+  .header-content h1 { color: #333; margin: 0 0 5px 0; }
+  .breadcrumb { color: #666; font-size: 14px; }
+  .breadcrumb a { color: #007bff; text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .header-actions { display: flex; gap: 10px; }
+
+  .table-toggle {
+    background: #f0f0f0;
+    color: #033047;
+    border: 1px solid #ccc;
+    padding: 10px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .banner.error {
+    background: #fdecea;
+    color: #b3261e;
+    border: 1px solid #f5c2c0;
+    border-radius: 5px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+
+  .loading { text-align: center; padding: 50px; font-size: 18px; color: #666; }
+
+  .section { margin-bottom: 40px; }
+  .section h2 { color: #333; font-size: 1.05rem; margin-bottom: 16px; }
+  .section h3 { color: #444; font-size: 0.9rem; margin: 0 0 10px 0; }
+
+  .note { margin-top: 10px; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+  .empty { color: var(--text-muted); font-size: 14px; }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+  }
+
+  .kpi {
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .kpi-value { font-size: 30px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+  .kpi-label { margin-top: 6px; font-size: 13px; color: var(--text-secondary); }
+  .kpi.warn .kpi-value { color: var(--critical); }
+
+  .chart { background: white; border: 1px solid #eee; border-radius: 10px; padding: 12px; }
+  .chart svg { width: 100%; height: auto; display: block; }
+
+  .grid { stroke: var(--grid); stroke-width: 1; }
+  .axis { fill: var(--text-muted); font-size: 11px; }
+  .line { fill: none; stroke: var(--sequential); stroke-width: 2; stroke-linejoin: round; }
+  .dot { fill: var(--sequential); stroke: var(--surface-1); stroke-width: 2; }
+
+  .legend { display: flex; gap: 16px; margin-bottom: 12px; font-size: 13px; color: var(--text-secondary); }
+  .key { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .swatch.s1 { background: var(--series-1); }
+  .swatch.s2 { background: var(--series-2); }
+
+  .bars { display: flex; flex-direction: column; gap: 10px; }
+  .bars.compact { gap: 7px; }
+
+  .bar-row { display: grid; grid-template-columns: 150px 1fr auto; gap: 12px; align-items: center; }
+
+  .bar-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bar-track { display: flex; gap: 2px; height: 14px; }
+
+  .seg { border-radius: 0 4px 4px 0; min-width: 2px; transition: opacity 0.15s ease; }
+  .seg:first-child { border-radius: 4px; }
+  .seg:hover { opacity: 0.75; }
+  .seg.s1 { background: var(--series-1); }
+  .seg.s2 { background: var(--series-2); }
+  .seg.seq { background: var(--sequential); }
+
+  .bar-value { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+  .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+  .split-col { background: white; border: 1px solid #eee; border-radius: 10px; padding: 16px; }
+
+  .mini-list { margin: 12px 0 0 0; padding-left: 18px; font-size: 13px; color: var(--text-secondary); }
+  .mini-list .muted { color: var(--text-muted); list-style: none; margin-left: -18px; }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th, .data-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; }
+  .data-table th { color: var(--text-secondary); font-weight: 600; }
+
+  @media (max-width: 640px) {
+    .bar-row { grid-template-columns: 110px 1fr auto; }
+  }
+</style>

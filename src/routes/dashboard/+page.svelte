@@ -225,6 +225,12 @@
           <p>Upload, edit, and manage library books</p>
           <div class="card-stats">{totalBooks} books available</div>
         </a>
+
+        <a href="/dashboard/analytics" class="management-card">
+          <h3>Analytics</h3>
+          <p>Reading activity, subjects, and student breakdown</p>
+          <div class="card-stats">Usage across the library</div>
+        </a>
       </div>
     </section>
   {/if}
