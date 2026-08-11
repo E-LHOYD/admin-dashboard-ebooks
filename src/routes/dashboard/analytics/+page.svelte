@@ -11,6 +11,7 @@
     ACTIVE_NOW_MINUTES
   } from '$lib/activity';
   import { bookSubjects } from '$lib/subjects';
+  import { hasRole, normalizeStudentType } from '$lib/users';
 
   let loading = $state(true);
   let errorMessage = $state('');
@@ -92,8 +93,11 @@
   let latestActivity = $derived(latestActivityByUser(users, progress));
   let activeNow = $derived(countActiveSince(latestActivity, minutesAgo(ACTIVE_NOW_MINUTES)));
 
-  let students = $derived(users.filter((u) => u.role === 'student'));
-  let teachers = $derived(users.filter((u) => u.role === 'teacher'));
+  // Matched through the normaliser rather than on the literal string. Accounts
+  // created from the dashboard stored role as 'Student' and this counted zero
+  // of them, so a school registering its students here saw no students at all.
+  let students = $derived(users.filter((u) => hasRole(u, 'student')));
+  let teachers = $derived(users.filter((u) => hasRole(u, 'teacher')));
 
   // ---------- active readers per day ----------
   let activeByDay = $derived.by(() => {
@@ -205,8 +209,12 @@
   let topBookMax = $derived(Math.max(1, ...topBooks.map((b) => b.count)));
 
   // ---------- academic breakdown ----------
-  let strands = $derived(tally(students.filter((s) => s.studentType === 'senior-high'), (s) => s.strand));
-  let courses = $derived(tally(students.filter((s) => s.studentType === 'college'), (s) => s.course));
+  let strands = $derived(
+    tally(students.filter((s) => normalizeStudentType(s) === 'senior-high'), (s) => s.strand)
+  );
+  let courses = $derived(
+    tally(students.filter((s) => normalizeStudentType(s) === 'college'), (s) => s.course)
+  );
   let levels = $derived(tally(students, (s) => (s.grade ? `Grade ${s.grade}` : s.year ? `Year ${s.year}` : null)));
 
   // ---------- things worth acting on ----------

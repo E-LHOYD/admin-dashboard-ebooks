@@ -3,6 +3,15 @@
   import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
+  import {
+    hasRole,
+    roleLabel,
+    normalizeStudentType,
+    studentTypeLabel,
+    isCollege,
+    isSeniorHigh,
+    fullName
+  } from '$lib/users';
 
   // Reactive state variables
   let users = $state([]);
@@ -21,9 +30,6 @@
     year: ''
   });
 
-  // Search state
-  let searchQuery = $state('');
-
   // Student form data
   let studentForm = $state({
     firstName: '',
@@ -32,7 +38,7 @@
     email: '',
     username: '',
     password: '',
-    role: 'Student'
+    role: 'student'
   });
 
   // Load users data
@@ -52,31 +58,11 @@
   // Apply filters to users
   function applyFilters() {
     filteredUsers = users.filter(user => {
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const fullName = `${user.firstName} ${user.middleName} ${user.surname}`.toLowerCase();
-        const username = user.username?.toLowerCase() || '';
-        const email = user.email?.toLowerCase() || '';
-        const lrnOrStudentNumber = user.type === 'college' 
-          ? (user.studentNumber?.toLowerCase() || '')
-          : (user.lrn?.toLowerCase() || '');
-        const documentId = user.id?.toLowerCase() || '';
-
-        const matchesSearch = 
-          fullName.includes(query) ||
-          username.includes(query) ||
-          email.includes(query) ||
-          lrnOrStudentNumber.includes(query) ||
-          documentId.includes(query);
-
-        if (!matchesSearch) {
-          return false;
-        }
-      }
-
       // Type filter
-      if (filters.type && user.type !== filters.type) {
+      // Read through the normaliser: the app writes studentType 'senior-high'
+      // where the dashboard wrote type 'shs', and this page used to see only
+      // the second, so nobody who signed up in the app appeared here at all.
+      if (filters.type && normalizeStudentType(user) !== filters.type) {
         return false;
       }
       
@@ -91,7 +77,8 @@
       }
       
       // Role filter
-      if (filters.role && user.role !== filters.role) {
+      // Same for role: the app writes 'student', the dashboard wrote 'Student'.
+      if (filters.role && !hasRole(user, filters.role)) {
         return false;
       }
       
@@ -119,11 +106,10 @@
       grade: '',
       year: ''
     };
-    searchQuery = '';
     applyFilters();
   }
 
-  // Watch for filter and search changes
+  // Watch for filter changes
   $effect(() => {
     if (users.length > 0) {
       applyFilters();
@@ -141,7 +127,7 @@
         email: '',
         username: '',
         password: '',
-        role: 'Student'
+        role: 'student'
       };
       showForm = false;
       await loadUsers(); // Refresh data
@@ -169,7 +155,7 @@
         email: '',
         username: '',
         password: '',
-        role: 'Student'
+        role: 'student'
       };
       showForm = false;
       await loadUsers(); // Refresh data
@@ -218,16 +204,22 @@
   loadUsers();
 </script>
 
-<div class="dashboard-container">
+<div class="students-container">
   <!-- Header -->
-  <header class="dashboard-header">
-    <div class="header-left">
-      <h1>Gardner E-Books Library Dashboard</h1>
-      <p class="user-info">Users Management</p>
+  <header class="page-header">
+    <div class="header-content">
+      <h1>Users Management</h1>
+      <nav class="breadcrumb">
+        <a href="/dashboard">Dashboard</a> / Users
+      </nav>
     </div>
     <div class="header-actions">
-      <button class="register-btn" onclick={() => goto('/dashboard')}>Return to Dashboard</button>
-      <button class="register-btn" onclick={() => goto('/dashboard/register')}>Register User</button>
+      <button class="dashboard-btn" onclick={() => goto('/dashboard')}>
+        Return to Dashboard
+      </button>
+      <button class="add-btn" onclick={() => goto('/dashboard/register')}>
+        + Register User
+      </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
   </header>
@@ -235,38 +227,13 @@
   {#if loading}
     <div class="loading">Loading users...</div>
   {:else}
-    <!-- Statistics Cards -->
-    <section class="stats-section">
-      <h2>Overview</h2>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-number">{users.length}</div>
-          <div class="stat-label">Total Users</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{filteredUsers.length}</div>
-          <div class="stat-label">Filtered Users</div>
-        </div>
-      </div>
-    </section>
-
     <!-- Filters Section -->
-    <section class="stats-section">
-      <h2>Filters</h2>
+    <section class="filters-section">
+      <h3>Filters</h3>
       <div class="filters-container">
-        <div class="search-group">
-          <label for="searchInput">Search</label>
-          <input 
-            id="searchInput" 
-            type="text" 
-            placeholder="Search name, username, email, LRN/Student#, Document ID" 
-            bind:value={searchQuery}
-          />
-        </div>
-        
         <div class="filter-group">
           <label for="roleFilter">Role</label>
-          <select id="roleFilter" bind:value={filters.role}>
+          <select id="roleFilter" bind:value={filters.role} onchange={applyFilters}>
             <option value="">All Roles</option>
             <option value="Student">Student</option>
             <option value="Teacher">Teacher</option>
@@ -276,16 +243,16 @@
         
         <div class="filter-group">
           <label for="typeFilter">Type</label>
-          <select id="typeFilter" bind:value={filters.type}>
+          <select id="typeFilter" bind:value={filters.type} onchange={applyFilters}>
             <option value="">All Types</option>
             <option value="college">College</option>
-            <option value="shs">Senior High School</option>
+            <option value="senior-high">Senior High School</option>
           </select>
         </div>
         
         <div class="filter-group">
           <label for="courseFilter">Course</label>
-          <select id="courseFilter" bind:value={filters.course}>
+          <select id="courseFilter" bind:value={filters.course} onchange={applyFilters}>
             <option value="">All Courses</option>
             <option value="BSCS">BSCS</option>
             <option value="BSBA">BSBA</option>
@@ -296,7 +263,7 @@
         
         <div class="filter-group">
           <label for="strandFilter">Strand</label>
-          <select id="strandFilter" bind:value={filters.strand}>
+          <select id="strandFilter" bind:value={filters.strand} onchange={applyFilters}>
             <option value="">All Strands</option>
             <option value="STEM">STEM</option>
             <option value="ABM">ABM</option>
@@ -310,7 +277,7 @@
         
         <div class="filter-group">
           <label for="yearFilter">Year</label>
-          <select id="yearFilter" bind:value={filters.year}>
+          <select id="yearFilter" bind:value={filters.year} onchange={applyFilters}>
             <option value="">All Years</option>
             <option value="1st Year">1st Year</option>
             <option value="2nd Year">2nd Year</option>
@@ -322,7 +289,7 @@
         
         <div class="filter-group">
           <label for="gradeFilter">Grade</label>
-          <select id="gradeFilter" bind:value={filters.grade}>
+          <select id="gradeFilter" bind:value={filters.grade} onchange={applyFilters}>
             <option value="">All Grades</option>
             <option value="Grade 11">Grade 11</option>
             <option value="Grade 12">Grade 12</option>
@@ -330,14 +297,14 @@
         </div>
         
         <div class="filter-actions">
-          <button class="register-btn" onclick={resetFilters}>Reset Filters</button>
+          <button class="reset-filters-btn" onclick={resetFilters}>Reset Filters</button>
+          <span class="results-count">Showing {filteredUsers.length} of {users.length} users</span>
         </div>
       </div>
     </section>
 
     <!-- Users Table -->
-    <section class="stats-section">
-      <h2>Users List</h2>
+    <section class="table-section">
       <div class="table-container">
         <table class="data-table">
           <thead>
@@ -357,33 +324,33 @@
           <tbody>
             {#each filteredUsers as user}
               <tr>
-                <td>{user.firstName} {user.middleName} {user.surname}</td>
+                <td>{fullName(user)}</td>
                 <td>{user.username}</td>
                 <td>{user.email}</td>
-                <td>{user.role}</td>
-                <td>{user.type || '-'}</td>
+                <td>{roleLabel(user) || '-'}</td>
+                <td>{studentTypeLabel(user) || '-'}</td>
                 <td>
-                  {#if user.type === 'college'}
+                  {#if isCollege(user)}
                     {user.year || '-'}
-                  {:else if user.type === 'shs'}
+                  {:else if isSeniorHigh(user)}
                     {user.grade || '-'}
                   {:else}
                     -
                   {/if}
                 </td>
                 <td>
-                  {#if user.type === 'college'}
+                  {#if isCollege(user)}
                     {user.course || '-'}
-                  {:else if user.type === 'shs'}
+                  {:else if isSeniorHigh(user)}
                     {user.strand || '-'}
                   {:else}
                     -
                   {/if}
                 </td>
                 <td>
-                  {#if user.type === 'college'}
+                  {#if isCollege(user)}
                     {user.studentNumber || '-'}
-                  {:else if user.type === 'shs'}
+                  {:else if isSeniorHigh(user)}
                     {user.lrn || '-'}
                   {:else}
                     -
@@ -421,7 +388,7 @@
           </div>
           <div class="modal-actions">
             <button type="button" class="cancel-btn" onclick={() => showForm = false}>Cancel</button>
-            <button type="submit" class="submit-btn">{editingUser ? 'Update User' : 'Add User'}</button>
+            <button type="submit" class="submit-btn">{editingStudent ? 'Update Student' : 'Add Student'}</button>
           </div>
         </form>
       </div>
@@ -431,38 +398,40 @@
 
 <style>
   @import '../style.css';
-  
-  .dashboard-container {
-    background-color: white;
-    min-height: 100vh;
+
+  .students-container {
+    max-width: 1600px;
+    margin: 0 auto;
     padding: 20px;
+    font-family: Arial, sans-serif;
   }
 
-  .dashboard-header {
+  .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
     padding-bottom: 20px;
-    border-bottom: 2px solid #ccc;
+    border-bottom: 2px solid #eee;
   }
 
-  .header-left {
-    display: flex;
-    flex-direction: column;
+  .header-content h1 {
+    color: #333;
+    margin: 0 0 5px 0;
   }
 
-  .dashboard-header h1 {
-    color: #033047;
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: bold;
-  }
-
-  .user-info {
+  .breadcrumb {
     color: #666;
-    margin: 5px 0 0 0;
-    font-size: 0.875rem;
+    font-size: 14px;
+  }
+
+  .breadcrumb a {
+    color: #007bff;
+    text-decoration: none;
+  }
+
+  .breadcrumb a:hover {
+    text-decoration: underline;
   }
 
   .header-actions {
@@ -470,82 +439,49 @@
     gap: 10px;
   }
 
-  .register-btn {
-    background: #033047;
+  .dashboard-btn {
+    background: #007bff;
     color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 8px;
+    border-radius: 5px;
     cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-    width: auto;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
   }
 
-  .register-btn:hover {
-    background: #024060;
+  .dashboard-btn:hover {
+    background: #0056b3;
   }
 
-  .logout-btn {
-    background: white;
-    color: #033047;
-    border: 2px solid #033047;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-    width: auto;
-  }
-
-  .logout-btn:hover {
-    background: #033047;
+  .add-btn {
+    background: #28a745;
     color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
   }
 
-  .loading {
-    text-align: center;
-    font-size: 1rem;
-    color: #033047;
-    padding: 40px;
+  .add-btn:hover {
+    background: #218838;
   }
 
-  .stats-section {
-    margin-bottom: 40px;
-  }
-
-  .stats-section h2 {
-    color: #033047;
-    font-size: 1rem;
-    font-weight: bold;
-    margin-bottom: 20px;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-  }
-
-  .stat-card {
+  .filters-section {
+    margin-bottom: 30px;
+    padding: 20px;
     background: white;
-    border: 1px solid #ccc;
-    border-radius: 8;
-    padding: 30px;
-    text-align: center;
+    border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
-  .stat-number {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #033047;
-    margin-bottom: 10px;
-  }
-
-  .stat-label {
-    font-size: 0.875rem;
-    color: #666;
+  .filters-section h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 18px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
   }
 
   .filters-container {
@@ -553,11 +489,6 @@
     flex-wrap: wrap;
     gap: 15px;
     align-items: flex-end;
-    padding: 20px;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
   .filter-group {
@@ -566,30 +497,8 @@
     min-width: 150px;
   }
 
-  .search-group {
-    display: flex;
-    flex-direction: column;
-    min-width: 300px;
-    flex-grow: 1;
-  }
-
-  .search-group input {
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    background: white;
-    transition: border-color 0.2s ease;
-  }
-
-  .search-group input:focus {
-    outline: none;
-    border-color: #033047;
-    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
-  }
-
   .filter-group label {
-    font-size: 0.875rem;
+    font-size: 12px;
     font-weight: 600;
     color: #555;
     margin-bottom: 5px;
@@ -597,9 +506,9 @@
 
   .filter-group select {
     padding: 8px 12px;
-    border: 1px solid #ccc;
+    border: 1px solid #ddd;
     border-radius: 6px;
-    font-size: 0.875rem;
+    font-size: 14px;
     background: white;
     cursor: pointer;
     transition: border-color 0.2s ease;
@@ -607,8 +516,8 @@
 
   .filter-group select:focus {
     outline: none;
-    border-color: #033047;
-    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
   }
 
   .filter-actions {
@@ -618,44 +527,44 @@
     margin-left: auto;
   }
 
-  .table-container {
-    overflow-x: auto;
+  .reset-filters-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
   }
 
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  .reset-filters-btn:hover {
+    background: #5a6268;
   }
 
-  .data-table th,
-  .data-table td {
-    padding: 12px 16px;
-    text-align: left;
-    border-bottom: 1px solid #ccc;
+  .results-count {
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
   }
 
-  .data-table th {
-    background: #f8f9fa;
-    font-weight: 600;
-    color: #033047;
-    border-bottom: 2px solid #ccc;
+  .table-section {
+    margin-bottom: 40px;
   }
 
-  .data-table tr:hover {
-    background: #f8f9fa;
+  .loading {
+    text-align: center;
+    padding: 50px;
+    font-size: 18px;
+    color: #666;
   }
 
   .data-table code {
     background: #f8f9fa;
     padding: 2px 6px;
     border-radius: 3px;
-    font-size: 0.75rem;
-    color: #033047;
+    font-size: 11px;
+    color: #e83e8c;
     font-family: 'Courier New', monospace;
   }
 
@@ -668,7 +577,42 @@
   }
 
   .data-table td:nth-child(9) code {
-    font-size: 0.625rem;
+    font-size: 10px;
+  }
+
+  .table-section {
+    margin-bottom: 40px;
+  }
+
+  .table-container {
+    overflow-x: visible;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+
+  .data-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #dee2e6;
+  }
+
+  .data-table tr:hover {
+    background: #f8f9fa;
   }
 
   .table-btn {
@@ -676,18 +620,18 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 12px;
     margin-right: 5px;
     transition: background-color 0.2s ease;
   }
 
   .edit-btn {
-    background: #033047;
+    background: #007bff;
     color: white;
   }
 
   .edit-btn:hover {
-    background: #024060;
+    background: #0056b3;
   }
 
   .delete-btn {
@@ -702,7 +646,7 @@
   .close-btn {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 24px;
     cursor: pointer;
     color: #666;
     padding: 0;
@@ -721,96 +665,7 @@
   }
 
   .close-btn:focus {
-    outline: 2px solid #033047;
+    outline: 2px solid #007bff;
     outline-offset: 2px;
-  }
-
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 16px;
-    overflow-y: auto;
-    z-index: 100;
-  }
-
-  .modal-content {
-    position: relative;
-    background: #fff;
-    border-radius: 8px;
-    padding: 24px;
-    width: 100%;
-    max-width: 560px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-  }
-
-  .modal-content h3 {
-    margin-top: 0;
-    color: #033047;
-    font-size: 1.125rem;
-    font-weight: bold;
-  }
-
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    margin-bottom: 20px;
-  }
-
-  .form-grid input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 0.875rem;
-    font-family: inherit;
-    box-sizing: border-box;
-  }
-
-  .form-grid input:focus {
-    outline: none;
-    border-color: #033047;
-    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
-  }
-
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-
-  .cancel-btn {
-    background: white;
-    color: #033047;
-    border: 2px solid #033047;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-  }
-
-  .cancel-btn:hover {
-    background: #033047;
-    color: white;
-  }
-
-  .submit-btn {
-    background: #033047;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-  }
-
-  .submit-btn:hover {
-    background: #024060;
   }
 </style>

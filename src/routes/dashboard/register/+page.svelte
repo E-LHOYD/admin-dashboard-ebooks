@@ -3,6 +3,7 @@
   import { createUserWithEmailAndPassword } from 'firebase/auth';
   import { collection, doc, setDoc } from 'firebase/firestore';
   import { goto } from '$app/navigation';
+  import { SUBJECTS } from '$lib/subjects';
 
   // Form state
   let formData = $state({
@@ -20,8 +21,12 @@
     username: '',
     password: '',
     confirmPassword: '',
-    role: 'Student'
+    role: 'student',
+    interests: []
   });
+
+  // The app makes every account choose exactly three, so this does too.
+  const REQUIRED_INTERESTS = 3;
 
   let loading = $state(false);
   let error = $state('');
@@ -46,7 +51,7 @@
     }
 
     // Additional validation for student type
-    if (formData.role === 'Student' && !formData.type) {
+    if (formData.role === 'student' && !formData.type) {
       error = 'Please select student type (College or SHS)';
       loading = false;
       return;
@@ -66,6 +71,12 @@
       }
     }
 
+    if (formData.interests.length !== REQUIRED_INTERESTS) {
+      error = `Please select exactly ${REQUIRED_INTERESTS} interests`;
+      loading = false;
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       error = 'Passwords do not match';
       loading = false;
@@ -83,22 +94,30 @@
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      // Create user document in Firestore
+      // Written in the same shape as the app's signup, so a user looks the
+      // same whichever side created them. The password is deliberately not
+      // stored: Firebase Auth holds it, and a copy in Firestore is readable by
+      // anyone who can read the users collection.
       const userData = {
+        uid: user.uid,
         firstName: formData.firstName,
         middleName: formData.middleName,
+        // The app writes both. surname is what the student list sorts on.
+        lastName: formData.surname,
         surname: formData.surname,
         email: formData.email,
         username: formData.username,
-        password: formData.password, // SECURITY RISK: Plain text password
         role: formData.role,
+        interests: [...formData.interests],
         createdAt: new Date().toISOString()
       };
 
-      // Add student-specific fields if role is Student
-      if (formData.role === 'Student') {
+      if (formData.role === 'student') {
+        // studentType is the app's field and what analytics reads; type is the
+        // older one the student list still filters on.
+        userData.studentType = formData.type === 'shs' ? 'senior-high' : 'college';
         userData.type = formData.type;
-        
+
         if (formData.type === 'college') {
           userData.studentNumber = formData.studentNumber;
           userData.course = formData.course;
@@ -130,7 +149,8 @@
         username: '',
         password: '',
         confirmPassword: '',
-        role: 'Student'
+        role: 'student',
+        interests: []
       };
 
       // Redirect after 2 seconds
@@ -229,118 +249,120 @@
           </div>
         </div>
 
-        <div class="form-section">
-          <h3>Student Information</h3>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="type">Student Type *</label>
-              <select 
-                id="type" 
-                bind:value={formData.type} 
-                required
-                disabled={loading}
-              >
-                <option value="">Select Type</option>
-                <option value="college">College</option>
-                <option value="shs">Senior High School</option>
-              </select>
+        {#if formData.role === 'student'}
+          <div class="form-section">
+            <h3>Student Information</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="type">Student Type *</label>
+                <select 
+                  id="type" 
+                  bind:value={formData.type} 
+                  required
+                  disabled={loading}
+                >
+                  <option value="">Select Type</option>
+                  <option value="college">College</option>
+                  <option value="shs">Senior High School</option>
+                </select>
+              </div>
             </div>
-          </div>
           
-          {#if formData.type === 'college'}
-            <div class="form-grid" style="margin-top: 20px;">
-              <div class="form-group">
-                <label for="studentNumber">Student Number *</label>
-                <input 
-                  type="text" 
-                  id="studentNumber" 
-                  bind:value={formData.studentNumber} 
-                  required
-                  disabled={loading}
-                />
-              </div>
+            {#if formData.type === 'college'}
+              <div class="form-grid" style="margin-top: 20px;">
+                <div class="form-group">
+                  <label for="studentNumber">Student Number *</label>
+                  <input 
+                    type="text" 
+                    id="studentNumber" 
+                    bind:value={formData.studentNumber} 
+                    required
+                    disabled={loading}
+                  />
+                </div>
               
-              <div class="form-group">
-                <label for="course">Course *</label>
-                <select 
-                  id="course" 
-                  bind:value={formData.course} 
-                  required
-                  disabled={loading}
-                >
-                  <option value="">Select Course</option>
-                  <option value="BSCS">BSCS - Bachelor of Science in Computer Science</option>
-                  <option value="BSBA">BSBA - Bachelor of Science in Business Administration</option>
-                  <option value="BSIT">BSIT - Bachelor of Science in Information Technology</option>
-                  <option value="BSIS">BSIS - Bachelor of Science in Information Systems</option>
-                </select>
-              </div>
+                <div class="form-group">
+                  <label for="course">Course *</label>
+                  <select 
+                    id="course" 
+                    bind:value={formData.course} 
+                    required
+                    disabled={loading}
+                  >
+                    <option value="">Select Course</option>
+                    <option value="BSCS">BSCS - Bachelor of Science in Computer Science</option>
+                    <option value="BSBA">BSBA - Bachelor of Science in Business Administration</option>
+                    <option value="BSIT">BSIT - Bachelor of Science in Information Technology</option>
+                    <option value="BSIS">BSIS - Bachelor of Science in Information Systems</option>
+                  </select>
+                </div>
               
-              <div class="form-group">
-                <label for="year">Year *</label>
-                <select 
-                  id="year" 
-                  bind:value={formData.year} 
-                  required
-                  disabled={loading}
-                >
-                  <option value="">Select Year</option>
-                  <option value="1st Year">1st Year</option>
-                  <option value="2nd Year">2nd Year</option>
-                  <option value="3rd Year">3rd Year</option>
-                  <option value="4th Year">4th Year</option>
-                  <option value="5th Year">5th Year</option>
-                </select>
+                <div class="form-group">
+                  <label for="year">Year *</label>
+                  <select 
+                    id="year" 
+                    bind:value={formData.year} 
+                    required
+                    disabled={loading}
+                  >
+                    <option value="">Select Year</option>
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                    <option value="5th Year">5th Year</option>
+                  </select>
+                </div>
               </div>
-            </div>
-          {:else if formData.type === 'shs'}
-            <div class="form-grid" style="margin-top: 20px;">
-              <div class="form-group">
-                <label for="lrn">Learner's Reference Number (LRN) *</label>
-                <input 
-                  type="text" 
-                  id="lrn" 
-                  bind:value={formData.lrn} 
-                  required
-                  disabled={loading}
-                />
-              </div>
+            {:else if formData.type === 'shs'}
+              <div class="form-grid" style="margin-top: 20px;">
+                <div class="form-group">
+                  <label for="lrn">Learner's Reference Number (LRN) *</label>
+                  <input 
+                    type="text" 
+                    id="lrn" 
+                    bind:value={formData.lrn} 
+                    required
+                    disabled={loading}
+                  />
+                </div>
               
-              <div class="form-group">
-                <label for="strand">Strand *</label>
-                <select 
-                  id="strand" 
-                  bind:value={formData.strand} 
-                  required
-                  disabled={loading}
-                >
-                  <option value="">Select Strand</option>
-                  <option value="STEM">STEM</option>
-                  <option value="ABM">ABM</option>
-                  <option value="HUMSS">HUMSS</option>
-                  <option value="GAS">GAS</option>
-                  <option value="TVL">TVL</option>
-                  <option value="SPORTS">SPORTS</option>
-                  <option value="ARTS & DESIGN">ARTS & DESIGN</option>
-                </select>
-              </div>
+                <div class="form-group">
+                  <label for="strand">Strand *</label>
+                  <select 
+                    id="strand" 
+                    bind:value={formData.strand} 
+                    required
+                    disabled={loading}
+                  >
+                    <option value="">Select Strand</option>
+                    <option value="STEM">STEM</option>
+                    <option value="ABM">ABM</option>
+                    <option value="HUMSS">HUMSS</option>
+                    <option value="GAS">GAS</option>
+                    <option value="TVL">TVL</option>
+                    <option value="SPORTS">SPORTS</option>
+                    <option value="ARTS & DESIGN">ARTS & DESIGN</option>
+                  </select>
+                </div>
               
-              <div class="form-group">
-                <label for="grade">Grade *</label>
-                <select 
-                  id="grade" 
-                  bind:value={formData.grade} 
-                  required
-                  disabled={loading}
-                >
-                  <option value="">Select Grade</option>
-                  <option value="Grade 11">Grade 11</option>
-                  <option value="Grade 12">Grade 12</option>
-                </select>
+                <div class="form-group">
+                  <label for="grade">Grade *</label>
+                  <select 
+                    id="grade" 
+                    bind:value={formData.grade} 
+                    required
+                    disabled={loading}
+                  >
+                    <option value="">Select Grade</option>
+                    <option value="Grade 11">Grade 11</option>
+                    <option value="Grade 12">Grade 12</option>
+                  </select>
+                </div>
               </div>
-            </div>
-          {/if}
-        </div>
+            {/if}
+          </div>
+        {/if}
 
         <div class="form-section">
           <h3>Account Information</h3>
@@ -375,12 +397,41 @@
                 required
                 disabled={loading}
               >
-                <option value="Student">Student</option>
-                <option value="Teacher">Teacher</option>
-                <option value="Admin">Admin</option>
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+                <option value="admin">Admin</option>
               </select>
             </div>
           </div>
+        </div>
+
+        <div class="form-section">
+          <h3>Interests</h3>
+          <p class="section-hint">
+            Pick exactly {REQUIRED_INTERESTS}. These are the subjects books carry, and the
+            app uses them the same way.
+          </p>
+          <div class="interest-grid">
+            {#each SUBJECTS as subject}
+              <label
+                class="interest-option"
+                class:disabled={loading ||
+                  (formData.interests.length >= REQUIRED_INTERESTS &&
+                    !formData.interests.includes(subject))}
+              >
+                <input
+                  type="checkbox"
+                  value={subject}
+                  bind:group={formData.interests}
+                  disabled={loading ||
+                    (formData.interests.length >= REQUIRED_INTERESTS &&
+                      !formData.interests.includes(subject))}
+                />
+                <span>{subject}</span>
+              </label>
+            {/each}
+          </div>
+          <p class="section-hint">{formData.interests.length}/{REQUIRED_INTERESTS} selected</p>
         </div>
 
         <div class="form-section">
@@ -514,6 +565,46 @@
     border-radius: 6px;
     margin-bottom: 20px;
     border: 1px solid #f5c6cb;
+  }
+
+  .section-hint {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: #6f6e6a;
+  }
+
+  .interest-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+
+  .interest-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .interest-option:hover {
+    border-color: #007bff;
+    background: #f8f9ff;
+  }
+
+  /* Once three are picked the rest are disabled, so they should not look
+     clickable. */
+  .interest-option.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .interest-option input {
+    width: auto;
+    margin: 0;
   }
 
   .form-section {
