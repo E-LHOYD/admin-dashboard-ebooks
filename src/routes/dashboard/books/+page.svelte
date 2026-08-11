@@ -26,7 +26,8 @@
   let filters = $state({
     subject: '',
     author: '',
-    releaseDate: ''
+    releaseDate: '',
+    publishedDate: ''
   });
 
   const acceptAttribute = ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(',');
@@ -43,7 +44,8 @@
       detail: '',
       subject: '',
       downloadedFrom: '',
-      releaseDate: getTodayDate()
+      releaseDate: getTodayDate(),
+      publishedDate: getTodayDate()
     };
   }
 
@@ -103,6 +105,11 @@
         return false;
       }
 
+      // Published date filter
+      if (filters.publishedDate && book.publishedDate !== filters.publishedDate) {
+        return false;
+      }
+
       return true;
     });
   }
@@ -120,12 +127,17 @@
     return [...new Set(books.map(b => b.releaseDate).filter(Boolean))].sort().reverse();
   }
 
+  function getUniquePublishedDates() {
+    return [...new Set(books.map(b => b.publishedDate).filter(Boolean))].sort().reverse();
+  }
+
   // Reset all filters
   function resetFilters() {
     filters = {
       subject: '',
       author: '',
-      releaseDate: ''
+      releaseDate: '',
+      publishedDate: ''
     };
     searchQuery = '';
     applyFilters();
@@ -144,7 +156,8 @@
       detail: book.detail ?? '',
       subject: book.subject ?? '',
       downloadedFrom: book.downloadedFrom ?? '',
-      releaseDate: book.releaseDate ?? getTodayDate()
+      releaseDate: book.releaseDate ?? getTodayDate(),
+      publishedDate: book.publishedDate ?? getTodayDate()
     };
   }
 
@@ -314,6 +327,16 @@
           </select>
         </div>
         
+        <div class="filter-group">
+          <label for="publishedDateFilter">Published Date</label>
+          <select id="publishedDateFilter" bind:value={filters.publishedDate}>
+            <option value="">All Published Dates</option>
+            {#each getUniquePublishedDates() as date}
+              <option value={date}>{date}</option>
+            {/each}
+          </select>
+        </div>
+        
         <div class="filter-actions">
           <button class="register-btn" onclick={resetFilters}>Reset Filters</button>
         </div>
@@ -331,6 +354,7 @@
               <th>Author</th>
               <th>Subject</th>
               <th>Release Date</th>
+              <th>Published Date</th>
               <th>Book file</th>
               <th>Actions</th>
             </tr>
@@ -342,6 +366,7 @@
                 <td>{book.author}</td>
                 <td>{book.subject}</td>
                 <td>{book.releaseDate}</td>
+                <td>{book.publishedDate || '-'}</td>
                 <td class="file-cell">
                   {#if book.fileUrl}
                     <a class="file-name-link" href={book.fileUrl} target="_blank" rel="noreferrer">
@@ -423,6 +448,11 @@
           <div class="form-group">
             <label class="field-label" for="edit-release">Release date</label>
             <input id="edit-release" type="date" bind:value={bookForm.releaseDate} />
+          </div>
+
+          <div class="form-group">
+            <label class="field-label" for="edit-published">Published date</label>
+            <input id="edit-published" type="date" bind:value={bookForm.publishedDate} />
           </div>
 
           <div class="form-group">

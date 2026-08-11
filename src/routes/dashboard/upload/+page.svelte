@@ -36,7 +36,8 @@
     detail: '',
     subject: '',
     downloadedFrom: '',
-    releaseDate: getTodayDate()
+    releaseDate: getTodayDate(),
+    publishedDate: getTodayDate()
   });
 
   // Handle file selection
@@ -92,6 +93,7 @@
         subject: bookForm.subject.trim(),
         downloadedFrom: bookForm.downloadedFrom,
         releaseDate: bookForm.releaseDate,
+        publishedDate: bookForm.publishedDate,
         fileUrl: uploaded.fileUrl,
         filePath: uploaded.filePath,
         fileName: uploaded.fileName,
@@ -124,7 +126,8 @@
       detail: '',
       subject: '',
       downloadedFrom: '',
-      releaseDate: getTodayDate()
+      releaseDate: getTodayDate(),
+      publishedDate: getTodayDate()
     };
     selectedFile = null;
     if (fileInput) fileInput.value = '';
@@ -242,6 +245,13 @@
             <input 
               type="date" 
               bind:value={bookForm.releaseDate} 
+              required
+            />
+          </div>
+          <div class="form-group">
+            <input 
+              type="date" 
+              bind:value={bookForm.publishedDate} 
               required
             />
           </div>
