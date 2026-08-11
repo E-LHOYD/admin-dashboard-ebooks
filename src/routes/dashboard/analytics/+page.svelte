@@ -147,6 +147,48 @@
   // Scaled against every subject, so bars keep their width when the list opens.
   let subjectMax = $derived(Math.max(1, ...allSubjectRows.map((r) => r.total)));
 
+  // ---------- interests ----------
+  // Chosen at signup, three per student, and stored on the user document.
+  //
+  // Deliberately counted as written rather than mapped onto the library's
+  // subject list: the two are different sets. Signup offers Biology, Physics,
+  // Mathematics, Computer Science, Technology, History and Culinary Arts, none
+  // of which a book can carry, and the library has Math, Computer and English,
+  // which no student can pick. Rewriting one into the other here would hide
+  // that; the mismatch is reported underneath the chart instead.
+  let librarySubjects = $derived(new Set(books.flatMap((b) => bookSubjects(b))));
+
+  let interestRows = $derived.by(() => {
+    const map = new Map();
+
+    for (const user of users) {
+      if (!Array.isArray(user.interests)) continue;
+
+      // A student choosing the same interest twice should still count once.
+      const seen = new Set();
+
+      for (const raw of user.interests) {
+        if (typeof raw !== 'string' || !raw.trim()) continue;
+        const label = raw.trim();
+        if (seen.has(label)) continue;
+        seen.add(label);
+        map.set(label, (map.get(label) || 0) + 1);
+      }
+    }
+
+    return [...map.entries()]
+      .map(([label, count]) => ({ label, count, inLibrary: librarySubjects.has(label) }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  });
+
+  let interestMax = $derived(Math.max(1, ...interestRows.map((r) => r.count)));
+
+  let accountsWithInterests = $derived(
+    users.filter((u) => Array.isArray(u.interests) && u.interests.length > 0).length
+  );
+
+  let unmatchedInterests = $derived(interestRows.filter((r) => !r.inLibrary));
+
   // ---------- most opened books ----------
   let topBooks = $derived.by(() => {
     const map = new Map();
@@ -209,6 +251,7 @@
         <div class="kpi"><div class="kpi-value">{pct(averagePercent)}</div><div class="kpi-label">Average progress</div></div>
         <div class="kpi"><div class="kpi-value">{shelvedBookCount}</div><div class="kpi-label">Books in created shelves</div></div>
         <div class="kpi"><div class="kpi-value">{activeNow}</div><div class="kpi-label">Active users (last {ACTIVE_NOW_MINUTES} min)</div></div>
+        <div class="kpi"><div class="kpi-value">{interestRows.length}</div><div class="kpi-label">Subjects chosen as interests</div></div>
         <div class="kpi"><div class="kpi-value">{students.length}</div><div class="kpi-label">Students</div></div>
         <div class="kpi"><div class="kpi-value">{teachers.length}</div><div class="kpi-label">Teachers</div></div>
       </div>
@@ -287,6 +330,41 @@
               ? `Show top ${SUBJECTS_PREVIEW} only`
               : `Show all ${allSubjectRows.length} subjects`}
           </button>
+        {/if}
+      {/if}
+    </section>
+
+    <!-- Interests -->
+    <section class="section">
+      <h2>Subjects chosen as interests</h2>
+      {#if interestRows.length === 0}
+        <p class="empty">No account has chosen interests yet.</p>
+      {:else}
+        <div class="bars">
+          {#each interestRows as row}
+            <div class="bar-row">
+              <div class="bar-label" title={row.label}>{row.label}</div>
+              <div class="bar-track">
+                <div
+                  class="seg seq"
+                  style="width:{(row.count / interestMax) * 100}%"
+                  title="{row.count} chose {row.label}"
+                ></div>
+              </div>
+              <div class="bar-value">{row.count}</div>
+            </div>
+          {/each}
+        </div>
+        <p class="note">
+          Chosen at signup, three per account. {accountsWithInterests} of {users.length}
+          accounts have them set.
+        </p>
+        {#if unmatchedInterests.length > 0}
+          <p class="note">
+            No book in the library carries {unmatchedInterests.map((r) => r.label).join(', ')}.
+            The signup interest list and the library's subject list are different sets, so
+            these choices cannot be matched to a book.
+          </p>
         {/if}
       {/if}
     </section>
@@ -377,6 +455,17 @@
             <thead><tr><th>Subject</th><th>Read</th><th>Viewed</th></tr></thead>
             <tbody>
               {#each allSubjectRows as r}<tr><td>{r.label}</td><td>{r.read}</td><td>{r.viewed}</td></tr>{/each}
+            </tbody>
+          </table>
+        </div>
+        <div class="split-col">
+          <h3>Interests</h3>
+          <table class="data-table">
+            <thead><tr><th>Subject</th><th>Chosen by</th><th>In library</th></tr></thead>
+            <tbody>
+              {#each interestRows as r}
+                <tr><td>{r.label}</td><td>{r.count}</td><td>{r.inLibrary ? 'Yes' : 'No'}</td></tr>
+              {/each}
             </tbody>
           </table>
         </div>
