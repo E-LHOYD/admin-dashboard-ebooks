@@ -6,6 +6,13 @@
   import { uploadBookFile } from '$lib/uploadBook';
   import { SUBJECTS, bookSubjects, subjectsLabel, hasSubject } from '$lib/subjects';
   import {
+    YEAR_LEVELS,
+    YEAR_LEVEL_GROUPS,
+    bookYearLevels,
+    yearLevelsLabel,
+    hasYearLevel
+  } from '$lib/yearLevels';
+  import {
     ACCEPTED_EXTENSIONS,
     formatFileSize,
     readerPath,
@@ -25,7 +32,8 @@
   // Search and filter state
   let searchQuery = $state('');
   let filters = $state({
-    subjects: [],
+    subject: '',
+    yearLevel: '',
     author: '',
     releaseDate: '',
     publishedDate: ''
@@ -44,6 +52,7 @@
       author: '',
       detail: '',
       subjects: [],
+      yearLevels: [],
       downloadedFrom: '',
       releaseDate: getTodayDate(),
       publishedDate: getTodayDate()
@@ -96,6 +105,11 @@
         return false;
       }
 
+      // Year level filter
+      if (filters.yearLevel && !hasYearLevel(book, filters.yearLevel)) {
+        return false;
+      }
+
       // Author filter
       if (filters.author && book.author !== filters.author) {
         return false;
@@ -137,7 +151,8 @@
   // Reset all filters
   function resetFilters() {
     filters = {
-      subjects: [],
+      subject: '',
+      yearLevel: '',
       author: '',
       releaseDate: '',
       publishedDate: ''
@@ -158,6 +173,7 @@
       author: book.author ?? '',
       detail: book.detail ?? '',
       subjects: bookSubjects(book),
+      yearLevels: bookYearLevels(book),
       downloadedFrom: book.downloadedFrom ?? '',
       releaseDate: book.releaseDate ?? getTodayDate(),
       publishedDate: book.publishedDate ?? getTodayDate()
@@ -315,6 +331,16 @@
         </div>
         
         <div class="filter-group">
+          <label for="yearLevelFilter">Year level</label>
+          <select id="yearLevelFilter" bind:value={filters.yearLevel}>
+            <option value="">All Year Levels</option>
+            {#each YEAR_LEVELS as level}
+              <option value={level}>{level}</option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="filter-group">
           <label for="authorFilter">Author</label>
           <select id="authorFilter" bind:value={filters.author}>
             <option value="">All Authors</option>
@@ -360,6 +386,7 @@
               <th>Title</th>
               <th>Author</th>
               <th>Subject</th>
+              <th>Year level</th>
               <th>Release Date</th>
               <th>Published Date</th>
               <th>Book file</th>
@@ -372,6 +399,7 @@
                 <td>{book.title}</td>
                 <td>{book.author}</td>
                 <td>{subjectsLabel(book) || '—'}</td>
+                <td>{yearLevelsLabel(book) || 'All levels'}</td>
                 <td>{book.releaseDate}</td>
                 <td>{book.publishedDate || '-'}</td>
                 <td class="file-cell">
@@ -460,6 +488,24 @@
           </div>
 
           <div class="form-group">
+            <span class="field-label">Year levels</span>
+            {#each YEAR_LEVEL_GROUPS as group}
+              <div class="level-group">
+                <span class="level-group-label">{group.label}</span>
+                <div class="level-options">
+                  {#each group.levels as level}
+                    <label class="subject-option">
+                      <input type="checkbox" value={level} bind:group={bookForm.yearLevels} />
+                      <span>{level}</span>
+                    </label>
+                  {/each}
+                </div>
+              </div>
+            {/each}
+            <p class="field-hint">Leave clear to recommend the book to every year level.</p>
+          </div>
+
+          <div class="form-group">
             <label class="field-label" for="edit-release">Release date</label>
             <input id="edit-release" type="date" bind:value={bookForm.releaseDate} />
           </div>
@@ -520,6 +566,27 @@
   .subject-option input {
     width: auto;
     margin: 0;
+  }
+
+  .level-group {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .level-group-label {
+    min-width: 92px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #52514e;
+  }
+
+  .level-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
   }
   
   .dashboard-container {

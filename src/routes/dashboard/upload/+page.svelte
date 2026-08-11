@@ -5,6 +5,7 @@
   import { goto } from '$app/navigation';
   import { uploadBookFile } from '$lib/uploadBook';
   import { SUBJECTS } from '$lib/subjects';
+  import { YEAR_LEVEL_GROUPS } from '$lib/yearLevels';
   import {
     ACCEPTED_EXTENSIONS,
     MAX_FILE_BYTES,
@@ -36,6 +37,7 @@
     author: '',
     detail: '',
     subjects: [],
+    yearLevels: [],
     downloadedFrom: '',
     releaseDate: getTodayDate(),
     publishedDate: ''
@@ -100,6 +102,7 @@
         // Also written as a joined string: the app's recommendations still read
         // the old single `subject` field.
         subject: bookForm.subjects.join(', '),
+        yearLevels: [...bookForm.yearLevels],
         downloadedFrom: bookForm.downloadedFrom,
         releaseDate: bookForm.releaseDate,
         publishedDate: bookForm.publishedDate,
@@ -134,6 +137,7 @@
       author: '',
       detail: '',
       subjects: [],
+      yearLevels: [],
       downloadedFrom: '',
       releaseDate: getTodayDate(),
       publishedDate: ''
@@ -250,6 +254,28 @@
           <p class="field-hint">A book can belong to more than one subject.</p>
         </div>
 
+        <div class="form-group">
+          <span class="field-label">Year levels</span>
+          {#each YEAR_LEVEL_GROUPS as group}
+            <div class="level-group">
+              <span class="level-group-label">{group.label}</span>
+              <div class="level-options">
+                {#each group.levels as level}
+                  <label class="subject-option">
+                    <input type="checkbox" value={level} bind:group={bookForm.yearLevels} />
+                    <span>{level}</span>
+                  </label>
+                {/each}
+              </div>
+            </div>
+          {/each}
+          <p class="field-hint">
+            Who the book is for, used to recommend it in the mobile app. Tick one level
+            for a single year, or several for a range such as Grade 11 to 12. Leave every
+            box clear and the book is recommended to all year levels.
+          </p>
+        </div>
+
         <div class="form-grid">
           <div class="form-group">
             <label class="field-label" for="release-date">Release date *</label>
@@ -295,6 +321,27 @@
 
 <style>
   @import '../style.css';
+
+  .level-group {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .level-group-label {
+    min-width: 92px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #52514e;
+  }
+
+  .level-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
 
   .field-label {
     display: block;
