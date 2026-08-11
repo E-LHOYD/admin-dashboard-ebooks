@@ -14,7 +14,6 @@
 
   let loading = $state(true);
   let errorMessage = $state('');
-  let showTables = $state(false);
 
   // Raw collections
   let users = $state([]);
@@ -179,9 +178,6 @@
       <nav class="breadcrumb"><a href="/dashboard">Dashboard</a> / Analytics</nav>
     </div>
     <div class="header-actions">
-      <button class="table-toggle" onclick={() => (showTables = !showTables)}>
-        {showTables ? 'Hide tables' : 'Show tables'}
-      </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
   </header>
@@ -354,31 +350,29 @@
       {/if}
     </section>
 
-    {#if showTables}
-      <section class="section">
-        <h2>Tables</h2>
-        <div class="split">
-          <div class="split-col">
-            <h3>Subjects</h3>
-            <table class="data-table">
-              <thead><tr><th>Subject</th><th>Read</th><th>Viewed</th></tr></thead>
-              <tbody>
-                {#each subjectRows as r}<tr><td>{r.label}</td><td>{r.read}</td><td>{r.viewed}</td></tr>{/each}
-              </tbody>
-            </table>
-          </div>
-          <div class="split-col">
-            <h3>Active readers</h3>
-            <table class="data-table">
-              <thead><tr><th>Day</th><th>Readers</th></tr></thead>
-              <tbody>
-                {#each activeByDay as d}<tr><td>{d.day}</td><td>{d.count}</td></tr>{/each}
-              </tbody>
-            </table>
-          </div>
+    <section class="section">
+      <h2>Tables</h2>
+      <div class="split">
+        <div class="split-col">
+          <h3>Subjects</h3>
+          <table class="data-table">
+            <thead><tr><th>Subject</th><th>Read</th><th>Viewed</th></tr></thead>
+            <tbody>
+              {#each subjectRows as r}<tr><td>{r.label}</td><td>{r.read}</td><td>{r.viewed}</td></tr>{/each}
+            </tbody>
+          </table>
         </div>
-      </section>
-    {/if}
+        <div class="split-col">
+          <h3>Active readers</h3>
+          <table class="data-table">
+            <thead><tr><th>Day</th><th>Readers</th></tr></thead>
+            <tbody>
+              {#each activeByDay as d}<tr><td>{d.day}</td><td>{d.count}</td></tr>{/each}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   {/if}
 </div>
 
@@ -434,15 +428,6 @@
   .breadcrumb a { color: #007bff; text-decoration: none; }
   .breadcrumb a:hover { text-decoration: underline; }
   .header-actions { display: flex; gap: 10px; }
-
-  .table-toggle {
-    background: #f0f0f0;
-    color: #033047;
-    border: 1px solid #ccc;
-    padding: 10px 16px;
-    border-radius: 5px;
-    cursor: pointer;
-  }
 
   .banner.error {
     background: #fdecea;
