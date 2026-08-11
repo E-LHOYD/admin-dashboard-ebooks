@@ -363,13 +363,6 @@
     margin-bottom: 40px;
   }
 
-  .stats-section h2 {
-    color: #033047;
-    font-size: 1rem;
-    font-weight: bold;
-    margin-bottom: 20px;
-  }
-
   .upload-card {
     background: white;
     border: 1px solid #ccc;

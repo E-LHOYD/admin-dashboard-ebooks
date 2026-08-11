@@ -13,12 +13,21 @@
 
   // Reactive state variables
   let books = $state([]);
+  let filteredBooks = $state([]);
   let loading = $state(true);
   let editingBook = $state(null);
   let errorMessage = $state('');
   let replacementFile = $state(null);
   let replacementInput = $state();
   let saving = $state(false);
+
+  // Search and filter state
+  let searchQuery = $state('');
+  let filters = $state({
+    subject: '',
+    author: '',
+    releaseDate: ''
+  });
 
   const acceptAttribute = ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(',');
 
@@ -47,12 +56,79 @@
       const booksQuery = query(collection(db, 'books'), orderBy('title'));
       const booksSnapshot = await getDocs(booksQuery);
       books = booksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      filteredBooks = [...books]; // Initialize filtered books
+      applyFilters();
       loading = false;
     } catch (error) {
       console.error('Error loading books:', error);
       errorMessage = 'Could not load books: ' + error.message;
       loading = false;
     }
+  }
+
+  // Apply filters to books
+  function applyFilters() {
+    filteredBooks = books.filter(book => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const title = book.title?.toLowerCase() || '';
+        const author = book.author?.toLowerCase() || '';
+        const subject = book.subject?.toLowerCase() || '';
+        const documentId = book.id?.toLowerCase() || '';
+
+        const matchesSearch = 
+          title.includes(query) ||
+          author.includes(query) ||
+          subject.includes(query) ||
+          documentId.includes(query);
+
+        if (!matchesSearch) {
+          return false;
+        }
+      }
+
+      // Subject filter
+      if (filters.subject && book.subject !== filters.subject) {
+        return false;
+      }
+
+      // Author filter
+      if (filters.author && book.author !== filters.author) {
+        return false;
+      }
+
+      // Release date filter
+      if (filters.releaseDate && book.releaseDate !== filters.releaseDate) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  // Get unique values for filters
+  function getUniqueSubjects() {
+    return [...new Set(books.map(b => b.subject).filter(Boolean))].sort();
+  }
+
+  function getUniqueAuthors() {
+    return [...new Set(books.map(b => b.author).filter(Boolean))].sort();
+  }
+
+  function getUniqueDates() {
+    return [...new Set(books.map(b => b.releaseDate).filter(Boolean))].sort().reverse();
+  }
+
+  // Reset all filters
+  function resetFilters() {
+    filters = {
+      subject: '',
+      author: '',
+      releaseDate: ''
+    };
+    searchQuery = '';
+    applyFilters();
   }
 
   // Edit book
@@ -115,7 +191,7 @@
 
       await updateDoc(doc(db, 'books', editingBook.id), changes);
       cancelEdit();
-      await loadBooks(); // Refresh data
+      await loadBooks(); // Refresh data and apply filters
     } catch (error) {
       console.error('Error updating book:', error);
       errorMessage = 'Could not save: ' + error.message;
@@ -129,7 +205,7 @@
     if (confirm('Are you sure you want to delete this book?')) {
       try {
         await deleteDoc(doc(db, 'books', bookId));
-        await loadBooks(); // Refresh data
+        await loadBooks(); // Refresh data and apply filters
       } catch (error) {
         console.error('Error deleting book:', error);
         errorMessage = 'Could not delete: ' + error.message;
@@ -147,6 +223,13 @@
     }
   }
 
+  // Watch for filter and search changes
+  $effect(() => {
+    if (books.length > 0) {
+      applyFilters();
+    }
+  });
+
   // Initialize on component mount
   loadBooks();
 </script>
@@ -159,6 +242,7 @@
       <p class="user-info">Books Management</p>
     </div>
     <div class="header-actions">
+      <button class="register-btn" onclick={() => goto('/dashboard')}>Return to Dashboard</button>
       <button class="register-btn" onclick={() => goto('/dashboard/upload')}>Upload Book</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
@@ -179,6 +263,60 @@
           <div class="stat-number">{books.length}</div>
           <div class="stat-label">Total Books</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-number">{filteredBooks.length}</div>
+          <div class="stat-label">Filtered Books</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filters Section -->
+    <section class="stats-section">
+      <h2>Filters</h2>
+      <div class="filters-container">
+        <div class="search-group">
+          <label for="searchInput">Search</label>
+          <input 
+            id="searchInput" 
+            type="text" 
+            placeholder="Search title, author, subject, Document ID" 
+            bind:value={searchQuery}
+          />
+        </div>
+        
+        <div class="filter-group">
+          <label for="subjectFilter">Subject</label>
+          <select id="subjectFilter" bind:value={filters.subject}>
+            <option value="">All Subjects</option>
+            {#each getUniqueSubjects() as subject}
+              <option value={subject}>{subject}</option>
+            {/each}
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="authorFilter">Author</label>
+          <select id="authorFilter" bind:value={filters.author}>
+            <option value="">All Authors</option>
+            {#each getUniqueAuthors() as author}
+              <option value={author}>{author}</option>
+            {/each}
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="dateFilter">Release Date</label>
+          <select id="dateFilter" bind:value={filters.releaseDate}>
+            <option value="">All Dates</option>
+            {#each getUniqueDates() as date}
+              <option value={date}>{date}</option>
+            {/each}
+          </select>
+        </div>
+        
+        <div class="filter-actions">
+          <button class="register-btn" onclick={resetFilters}>Reset Filters</button>
+        </div>
       </div>
     </section>
 
@@ -198,7 +336,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each books as book}
+            {#each filteredBooks as book}
               <tr>
                 <td>{book.title}</td>
                 <td>{book.author}</td>
@@ -645,5 +783,75 @@
 
   .submit-btn:hover {
     background: #024060;
+  }
+
+  .filters-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+    padding: 20px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+  }
+
+  .search-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 300px;
+    flex-grow: 1;
+  }
+
+  .search-group input {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: white;
+    transition: border-color 0.2s ease;
+  }
+
+  .search-group input:focus {
+    outline: none;
+    border-color: #033047;
+    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
+  }
+
+  .filter-group label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 5px;
+  }
+
+  .filter-group select {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+  }
+
+  .filter-group select:focus {
+    outline: none;
+    border-color: #033047;
+    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
+  }
+
+  .filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-left: auto;
   }
 </style>

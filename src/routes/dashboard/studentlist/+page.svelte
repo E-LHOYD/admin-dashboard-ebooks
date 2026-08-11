@@ -21,6 +21,9 @@
     year: ''
   });
 
+  // Search state
+  let searchQuery = $state('');
+
   // Student form data
   let studentForm = $state({
     firstName: '',
@@ -49,6 +52,29 @@
   // Apply filters to users
   function applyFilters() {
     filteredUsers = users.filter(user => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const fullName = `${user.firstName} ${user.middleName} ${user.surname}`.toLowerCase();
+        const username = user.username?.toLowerCase() || '';
+        const email = user.email?.toLowerCase() || '';
+        const lrnOrStudentNumber = user.type === 'college' 
+          ? (user.studentNumber?.toLowerCase() || '')
+          : (user.lrn?.toLowerCase() || '');
+        const documentId = user.id?.toLowerCase() || '';
+
+        const matchesSearch = 
+          fullName.includes(query) ||
+          username.includes(query) ||
+          email.includes(query) ||
+          lrnOrStudentNumber.includes(query) ||
+          documentId.includes(query);
+
+        if (!matchesSearch) {
+          return false;
+        }
+      }
+
       // Type filter
       if (filters.type && user.type !== filters.type) {
         return false;
@@ -93,10 +119,11 @@
       grade: '',
       year: ''
     };
+    searchQuery = '';
     applyFilters();
   }
 
-  // Watch for filter changes
+  // Watch for filter and search changes
   $effect(() => {
     if (users.length > 0) {
       applyFilters();
@@ -199,6 +226,7 @@
       <p class="user-info">Users Management</p>
     </div>
     <div class="header-actions">
+      <button class="register-btn" onclick={() => goto('/dashboard')}>Return to Dashboard</button>
       <button class="register-btn" onclick={() => goto('/dashboard/register')}>Register User</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
@@ -226,9 +254,19 @@
     <section class="stats-section">
       <h2>Filters</h2>
       <div class="filters-container">
+        <div class="search-group">
+          <label for="searchInput">Search</label>
+          <input 
+            id="searchInput" 
+            type="text" 
+            placeholder="Search name, username, email, LRN/Student#, Document ID" 
+            bind:value={searchQuery}
+          />
+        </div>
+        
         <div class="filter-group">
           <label for="roleFilter">Role</label>
-          <select id="roleFilter" bind:value={filters.role} onchange={applyFilters}>
+          <select id="roleFilter" bind:value={filters.role}>
             <option value="">All Roles</option>
             <option value="Student">Student</option>
             <option value="Teacher">Teacher</option>
@@ -238,7 +276,7 @@
         
         <div class="filter-group">
           <label for="typeFilter">Type</label>
-          <select id="typeFilter" bind:value={filters.type} onchange={applyFilters}>
+          <select id="typeFilter" bind:value={filters.type}>
             <option value="">All Types</option>
             <option value="college">College</option>
             <option value="shs">Senior High School</option>
@@ -247,7 +285,7 @@
         
         <div class="filter-group">
           <label for="courseFilter">Course</label>
-          <select id="courseFilter" bind:value={filters.course} onchange={applyFilters}>
+          <select id="courseFilter" bind:value={filters.course}>
             <option value="">All Courses</option>
             <option value="BSCS">BSCS</option>
             <option value="BSBA">BSBA</option>
@@ -258,7 +296,7 @@
         
         <div class="filter-group">
           <label for="strandFilter">Strand</label>
-          <select id="strandFilter" bind:value={filters.strand} onchange={applyFilters}>
+          <select id="strandFilter" bind:value={filters.strand}>
             <option value="">All Strands</option>
             <option value="STEM">STEM</option>
             <option value="ABM">ABM</option>
@@ -272,7 +310,7 @@
         
         <div class="filter-group">
           <label for="yearFilter">Year</label>
-          <select id="yearFilter" bind:value={filters.year} onchange={applyFilters}>
+          <select id="yearFilter" bind:value={filters.year}>
             <option value="">All Years</option>
             <option value="1st Year">1st Year</option>
             <option value="2nd Year">2nd Year</option>
@@ -284,7 +322,7 @@
         
         <div class="filter-group">
           <label for="gradeFilter">Grade</label>
-          <select id="gradeFilter" bind:value={filters.grade} onchange={applyFilters}>
+          <select id="gradeFilter" bind:value={filters.grade}>
             <option value="">All Grades</option>
             <option value="Grade 11">Grade 11</option>
             <option value="Grade 12">Grade 12</option>
@@ -526,6 +564,28 @@
     display: flex;
     flex-direction: column;
     min-width: 150px;
+  }
+
+  .search-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 300px;
+    flex-grow: 1;
+  }
+
+  .search-group input {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: white;
+    transition: border-color 0.2s ease;
+  }
+
+  .search-group input:focus {
+    outline: none;
+    border-color: #033047;
+    box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
   }
 
   .filter-group label {
