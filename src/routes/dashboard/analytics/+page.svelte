@@ -397,32 +397,32 @@
 <style>
   @import '../style.css';
 
-  /* Palette roles, so light and dark swap in one place. */
+  /* Palette roles, in one place so a colour is changed once.
+   *
+   * There is deliberately no dark variant. Every surface on this page and in
+   * the rest of the dashboard is hardcoded white: the cards, the chart panels,
+   * the tables. A dark palette used to be applied whenever the operating system
+   * asked for dark mode, which painted white text on those white cards, so the
+   * figures vanished and the labels turned pale grey. The page is light, and
+   * says so, whatever the system preference is. */
   .viz-root {
-    color-scheme: light;
+    color-scheme: light only;
     --surface-1: #fcfcfb;
     --text-primary: #0b0b0b;
     --text-secondary: #52514e;
     --text-muted: #6f6e6a;
-    --grid: #e6e5e1;
+    --grid: #d8d7d2;
     --series-1: #2a78d6;
     --series-2: #eb6834;
     --sequential: #2a78d6;
     --critical: #d03b3b;
-  }
+    /* series-1 is tuned for filled bars; as small text on white it only
+       reaches 4.4:1, so buttons use a darker step of the same blue. */
+    --series-1-text: #1a5fb4;
 
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme='light'])) .viz-root {
-      color-scheme: dark;
-      --surface-1: #1a1a19;
-      --text-primary: #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted: #a3a29a;
-      --grid: #383835;
-      --series-1: #3987e5;
-      --series-2: #d95926;
-      --sequential: #3987e5;
-    }
+    /* Anything without a colour rule of its own, table cells especially,
+       inherits a readable one rather than whatever the browser picks. */
+    color: var(--text-primary);
   }
 
   .analytics-container {
@@ -450,7 +450,7 @@
   .more-btn {
     margin-top: 14px;
     background: none;
-    color: var(--series-1);
+    color: var(--series-1-text);
     border: 1px solid var(--grid);
     padding: 8px 14px;
     border-radius: 5px;
@@ -546,6 +546,7 @@
   .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .data-table th, .data-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; }
   .data-table th { color: var(--text-secondary); font-weight: 600; }
+  .data-table td { color: var(--text-primary); }
 
   @media (max-width: 640px) {
     .bar-row { grid-template-columns: 110px 1fr auto; }
