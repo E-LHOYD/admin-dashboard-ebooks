@@ -116,7 +116,10 @@
   let peakActive = $derived(Math.max(1, ...activeByDay.map((d) => d.count)));
 
   // ---------- subjects ----------
-  let subjectRows = $derived.by(() => {
+  const SUBJECTS_PREVIEW = 5;
+  let showAllSubjects = $state(false);
+
+  let allSubjectRows = $derived.by(() => {
     const map = new Map();
     for (const p of progress) {
       // A book can carry several subjects, and counts once under each.
@@ -130,11 +133,19 @@
     }
     return [...map.values()]
       .map((r) => ({ ...r, total: r.read + r.viewed }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 8);
+      .sort((a, b) => b.total - a.total);
   });
 
-  let subjectMax = $derived(Math.max(1, ...subjectRows.map((r) => r.total)));
+  // The chart leads with the busiest five so the shape is readable at a glance;
+  // the rest are one click away rather than dropped.
+  let subjectRows = $derived(
+    showAllSubjects ? allSubjectRows : allSubjectRows.slice(0, SUBJECTS_PREVIEW)
+  );
+
+  let hiddenSubjectCount = $derived(Math.max(0, allSubjectRows.length - SUBJECTS_PREVIEW));
+
+  // Scaled against every subject, so bars keep their width when the list opens.
+  let subjectMax = $derived(Math.max(1, ...allSubjectRows.map((r) => r.total)));
 
   // ---------- most opened books ----------
   let topBooks = $derived.by(() => {
@@ -270,6 +281,13 @@
             </div>
           {/each}
         </div>
+        {#if hiddenSubjectCount > 0}
+          <button class="more-btn" onclick={() => (showAllSubjects = !showAllSubjects)}>
+            {showAllSubjects
+              ? `Show top ${SUBJECTS_PREVIEW} only`
+              : `Show all ${allSubjectRows.length} subjects`}
+          </button>
+        {/if}
       {/if}
     </section>
 
@@ -358,7 +376,7 @@
           <table class="data-table">
             <thead><tr><th>Subject</th><th>Read</th><th>Viewed</th></tr></thead>
             <tbody>
-              {#each subjectRows as r}<tr><td>{r.label}</td><td>{r.read}</td><td>{r.viewed}</td></tr>{/each}
+              {#each allSubjectRows as r}<tr><td>{r.label}</td><td>{r.read}</td><td>{r.viewed}</td></tr>{/each}
             </tbody>
           </table>
         </div>
@@ -428,6 +446,22 @@
   .breadcrumb a { color: #007bff; text-decoration: none; }
   .breadcrumb a:hover { text-decoration: underline; }
   .header-actions { display: flex; gap: 10px; }
+
+  .more-btn {
+    margin-top: 14px;
+    background: none;
+    color: var(--series-1);
+    border: 1px solid var(--grid);
+    padding: 8px 14px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .more-btn:hover {
+    background: var(--surface-1);
+  }
 
   .banner.error {
     background: #fdecea;
