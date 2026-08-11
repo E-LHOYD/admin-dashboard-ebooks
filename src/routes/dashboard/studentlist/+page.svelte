@@ -10,6 +10,8 @@
     studentTypeLabel,
     isCollege,
     isSeniorHigh,
+    isTeacher,
+    idNumberOf,
     fullName
   } from '$lib/users';
 
@@ -315,8 +317,8 @@
               <th>Role</th>
               <th>Type</th>
               <th>Grade/Year</th>
-              <th>Course/Strand</th>
-              <th>LRN/Student #</th>
+              <th>Course/Strand/Dept</th>
+              <th>LRN/Student/Employee #</th>
               <th>Document ID</th>
               <th>Actions</th>
             </tr>
@@ -343,19 +345,13 @@
                     {user.course || '-'}
                   {:else if isSeniorHigh(user)}
                     {user.strand || '-'}
+                  {:else if isTeacher(user)}
+                    {user.department || '-'}
                   {:else}
                     -
                   {/if}
                 </td>
-                <td>
-                  {#if isCollege(user)}
-                    {user.studentNumber || '-'}
-                  {:else if isSeniorHigh(user)}
-                    {user.lrn || '-'}
-                  {:else}
-                    -
-                  {/if}
-                </td>
+                <td>{idNumberOf(user) || '-'}</td>
                 <td><code>{user.id}</code></td>
                 <td>
                   <button class="table-btn edit-btn" onclick={() => editUser(user)}>Edit</button>

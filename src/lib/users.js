@@ -13,6 +13,11 @@
 // app's shape, but documents in both shapes already exist and always will, so
 // everything reads users through here.
 
+// What a teacher is attached to. Teachers have no year, course or student
+// number, so this and an employee number are all that stands in for the
+// academic credentials a student carries.
+export const DEPARTMENTS = ['Senior High', 'College', 'Both'];
+
 /**
  * The user's role, lowercased and trimmed.
  * @param {any} user
@@ -95,4 +100,25 @@ export function userInterests(user) {
 	return user.interests
 		.filter((i) => typeof i === 'string' && i.trim())
 		.map((i) => i.trim());
+}
+
+/** True if the user is a teacher. */
+export function isTeacher(user) {
+	return normalizeRole(user) === 'teacher';
+}
+
+/**
+ * The identifying number for a user, whichever kind they are: a teacher's
+ * employee number, a college student's number, a senior high learner's LRN.
+ * @param {any} user
+ * @returns {string}
+ */
+export function idNumberOf(user) {
+	const raw = isTeacher(user)
+		? user?.employeeNumber
+		: isCollege(user)
+			? user?.studentNumber
+			: user?.lrn;
+
+	return typeof raw === 'string' ? raw.trim() : '';
 }

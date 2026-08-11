@@ -4,6 +4,7 @@
   import { collection, doc, setDoc } from 'firebase/firestore';
   import { goto } from '$app/navigation';
   import { SUBJECTS } from '$lib/subjects';
+  import { DEPARTMENTS } from '$lib/users';
 
   // Form state
   let formData = $state({
@@ -17,6 +18,8 @@
     strand: '', //if shs
     studentNumber: '', //if college
     lrn: '', //if shs
+    employeeNumber: '', //if teacher
+    department: '', //if teacher
     email: '',
     username: '',
     password: '',
@@ -57,6 +60,14 @@
       return;
     }
 
+    if (formData.role === 'teacher' && (!formData.employeeNumber || !formData.department)) {
+      error = 'Please fill in all teacher fields';
+      loading = false;
+      return;
+    }
+
+    // Only a student has these; a teacher never reaches them because type stays
+    // empty for them.
     if (formData.type === 'college') {
       if (!formData.studentNumber || !formData.course || !formData.year) {
         error = 'Please fill in all college student fields';
@@ -127,6 +138,11 @@
           userData.strand = formData.strand;
           userData.grade = formData.grade;
         }
+      } else if (formData.role === 'teacher') {
+        // A teacher has no year, course or student number. The employee number
+        // and department stand in their place.
+        userData.employeeNumber = formData.employeeNumber;
+        userData.department = formData.department;
       }
 
       await setDoc(doc(db, 'users', user.uid), userData);
@@ -145,6 +161,8 @@
         strand: '',
         studentNumber: '',
         lrn: '',
+        employeeNumber: '',
+        department: '',
         email: '',
         username: '',
         password: '',
@@ -361,6 +379,34 @@
                 </div>
               </div>
             {/if}
+          </div>
+        {/if}
+
+        {#if formData.role === 'teacher'}
+          <div class="form-section">
+            <h3>Teacher Information</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="employeeNumber">Employee Number *</label>
+                <input
+                  type="text"
+                  id="employeeNumber"
+                  bind:value={formData.employeeNumber}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="department">Department *</label>
+                <select id="department" bind:value={formData.department} required disabled={loading}>
+                  <option value="">Select Department</option>
+                  {#each DEPARTMENTS as department}
+                    <option value={department}>{department}</option>
+                  {/each}
+                </select>
+              </div>
+            </div>
           </div>
         {/if}
 
