@@ -256,18 +256,39 @@
       <h2>Management</h2>
       <div class="management-grid">
         <a href="/dashboard/studentlist" class="management-card">
-          <h3>Students Management</h3>
-          <p>Register and manage student accounts</p>
-          <div class="card-stats">{totalUsers} registered students</div>
+          <div class="card-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <h3>Users Management</h3>
+          <p>Register and manage user accounts</p>
+          <div class="card-stats">{totalUsers} registered users</div>
         </a>
-        
+
         <a href="/dashboard/books" class="management-card">
+          <div class="card-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+          </div>
           <h3>Books Management</h3>
           <p>Upload, edit, and manage library books</p>
           <div class="card-stats">{totalBooks} books available</div>
         </a>
 
         <a href="/dashboard/analytics" class="management-card">
+          <div class="card-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+          </div>
           <h3>Analytics</h3>
           <p>Reading activity, subjects, and student breakdown</p>
           <div class="card-stats">Usage across the library</div>
@@ -343,6 +364,14 @@
   .stat-icon {
     color: var(--brand);
     margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-icon {
+    color: var(--brand);
+    margin-bottom: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
