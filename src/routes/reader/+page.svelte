@@ -18,6 +18,7 @@
   let pagesRendered = $state(0);
   let currentPage = $state(1);
   let container = $state();
+  let previewMode = $state(false);
 
   // The mobile app polls window.__readerProgress from the native side; it
   // cannot observe scrolling inside this WebView any other way.
@@ -79,6 +80,8 @@
 
   onMount(async () => {
     const fileUrl = new URLSearchParams(window.location.search).get('url');
+    const preview = new URLSearchParams(window.location.search).get('preview') === 'true';
+    previewMode = preview;
 
     if (!fileUrl) {
       errorMessage = 'No book link was provided.';
@@ -123,7 +126,9 @@
 
       // Render sequentially so the first page appears as soon as possible
       // instead of waiting for the whole book.
-      for (let i = 1; i <= pdf.numPages; i++) {
+      // In preview mode, only render the first page
+      const maxPages = previewMode ? 1 : pdf.numPages;
+      for (let i = 1; i <= maxPages; i++) {
         await renderPage(pdf, i);
       }
     } catch (e) {
@@ -149,7 +154,7 @@
   </div>
 {/if}
 
-{#if pageCount > 0}
+{#if pageCount > 0 && !previewMode}
   <div class="page-counter">
     {pagesRendered < pageCount ? `rendering ${pagesRendered} / ${pageCount}` : `${currentPage} / ${pageCount}`}
   </div>
