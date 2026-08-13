@@ -134,11 +134,11 @@
       // In preview mode, only render the first page
       const maxPages = previewMode ? 1 : pdf.numPages;
       for (let i = 1; i <= maxPages; i++) {
+        status = `Preparing pages… ${i} / ${maxPages}`;
         await renderPage(pdf, i);
-        // First page is visible — drop the loading screen; the bottom-right
-        // "rendering N / M" counter covers the rest of the render.
-        if (i === 1) status = '';
       }
+      // Loading screen stays up until every page has been drawn.
+      status = '';
 
       // Scroll to target page if specified (not in preview mode)
       if (targetPage > 1 && !previewMode) {
