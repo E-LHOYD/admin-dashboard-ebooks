@@ -19,6 +19,7 @@
   let currentPage = $state(1);
   let container = $state();
   let previewMode = $state(false);
+  let targetPage = $state(1);
 
   // The mobile app polls window.__readerProgress from the native side; it
   // cannot observe scrolling inside this WebView any other way.
@@ -81,7 +82,9 @@
   onMount(async () => {
     const fileUrl = new URLSearchParams(window.location.search).get('url');
     const preview = new URLSearchParams(window.location.search).get('preview') === 'true';
+    const pageParam = new URLSearchParams(window.location.search).get('page');
     previewMode = preview;
+    targetPage = pageParam ? parseInt(pageParam, 10) : 1;
 
     if (!fileUrl) {
       errorMessage = 'No book link was provided.';
@@ -130,6 +133,19 @@
       const maxPages = previewMode ? 1 : pdf.numPages;
       for (let i = 1; i <= maxPages; i++) {
         await renderPage(pdf, i);
+      }
+
+      // Scroll to target page if specified (not in preview mode)
+      if (targetPage > 1 && !previewMode) {
+        // Wait for pages to render, then scroll
+        setTimeout(() => {
+          const targetCanvas = container?.querySelector(`.pdf-page:nth-child(${targetPage})`);
+          if (targetCanvas) {
+            targetCanvas.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            currentPage = targetPage;
+            publishProgress(targetPage, pageCount);
+          }
+        }, 500);
       }
     } catch (e) {
       console.error('Reader error:', e);
