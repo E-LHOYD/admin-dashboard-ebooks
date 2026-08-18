@@ -359,7 +359,6 @@
                     <option value="HUMSS">HUMSS</option>
                     <option value="GAS">GAS</option>
                     <option value="TVL">TVL</option>
-                    <option value="SPORTS">SPORTS</option>
                     <option value="ARTS & DESIGN">ARTS & DESIGN</option>
                   </select>
                 </div>
