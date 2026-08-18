@@ -120,7 +120,9 @@
 
       const pdf = await loadingTask.promise;
       pageCount = pdf.numPages;
-      status = '';
+      // Keep the loading screen up while the first page is drawn — clearing
+      // it here would show a blank dark screen until the canvas appears.
+      status = 'Preparing pages…';
 
       // Publish immediately so the app shows 1 / N rather than 0% while the
       // remaining pages are still being drawn.
@@ -132,8 +134,11 @@
       // In preview mode, only render the first page
       const maxPages = previewMode ? 1 : pdf.numPages;
       for (let i = 1; i <= maxPages; i++) {
+        status = `Preparing pages… ${i} / ${maxPages}`;
         await renderPage(pdf, i);
       }
+      // Loading screen stays up until every page has been drawn.
+      status = '';
 
       // Scroll to target page if specified (not in preview mode)
       if (targetPage > 1 && !previewMode) {
@@ -161,7 +166,10 @@
 </svelte:head>
 
 {#if status}
-  <div class="overlay">{status}</div>
+  <div class="overlay">
+    <div class="spinner"></div>
+    <div>{status}</div>
+  </div>
 {/if}
 
 {#if errorMessage}
@@ -198,11 +206,35 @@
   }
 
   .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: #33383d;
     padding: 32px 20px;
     text-align: center;
     color: #e8e8e8;
     font-family: system-ui, -apple-system, Arial, sans-serif;
     font-size: 15px;
+  }
+
+  .spinner {
+    width: 38px;
+    height: 38px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #ffd700;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .overlay.error {
