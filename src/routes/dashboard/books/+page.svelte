@@ -28,7 +28,7 @@
   let replacementFile = $state(null);
   let replacementInput = $state();
   let saving = $state(false);
-  let copiedId = $state('');
+
 
   // Search and filter state
   let searchQuery = $state('');
@@ -88,13 +88,11 @@
         const title = book.title?.toLowerCase() || '';
         const author = book.author?.toLowerCase() || '';
         const subject = subjectsLabel(book).toLowerCase();
-        const documentId = book.id?.toLowerCase() || '';
 
         const matchesSearch = 
           title.includes(query) ||
           author.includes(query) ||
-          subject.includes(query) ||
-          documentId.includes(query);
+          subject.includes(query);
 
         if (!matchesSearch) {
           return false;
@@ -250,21 +248,6 @@
     }
   }
 
-  // A document id is only useful if it can be lifted out of the table, and it
-  // is too long to retype from a glance at the screen.
-  async function copyDocumentId(id) {
-    try {
-      await navigator.clipboard.writeText(id);
-      copiedId = id;
-      setTimeout(() => {
-        if (copiedId === id) copiedId = '';
-      }, 1500);
-    } catch (error) {
-      console.error('Could not copy the document id:', error);
-      errorMessage = 'Could not copy to the clipboard. Select the id and copy it by hand.';
-    }
-  }
-
   // Logout
   async function logout() {
     try {
@@ -341,7 +324,7 @@
           <input 
             id="searchInput" 
             type="text" 
-            placeholder="Search title, author, subject or document ID" 
+            placeholder="Search title, author, or subject" 
             bind:value={searchQuery}
           />
         </div>
@@ -416,7 +399,6 @@
               <th>Release Date</th>
               <th>Published Date</th>
               <th>Book file</th>
-              <th>Document ID</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -443,13 +425,6 @@
                       No file - not readable in app
                     </span>
                   {/if}
-                </td>
-                <td class="id-cell">
-                  <code class="doc-id" title={book.id}>{book.id}</code>
-                  <button
-                    class="table-btn copy-btn"
-                    onclick={() => copyDocumentId(book.id)}
-                  >{copiedId === book.id ? 'Copied' : 'Copy'}</button>
                 </td>
                 <td>
                   <button class="table-btn edit-btn" onclick={() => editBook(book)}>Edit</button>
@@ -600,28 +575,6 @@
   .subject-option input {
     width: auto;
     margin: 0;
-  }
-
-  .id-cell {
-    white-space: nowrap;
-  }
-
-  .doc-id {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 12px;
-    color: #52514e;
-    background: #f4f4f2;
-    border: 1px solid #e6e5e1;
-    border-radius: var(--radius-sm);
-    padding: 2px 6px;
-    user-select: all;
-  }
-
-  .copy-btn {
-    background: #f0f0f0;
-    color: #033047;
-    border: 1px solid #ccc;
-    margin-left: 6px;
   }
 
   .level-group {

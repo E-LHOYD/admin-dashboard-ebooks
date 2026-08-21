@@ -310,6 +310,8 @@
         <table class="data-table">
           <thead>
             <tr>
+              <th>#</th>
+              <th>LRN/Student/Employee #</th>
               <th>Name</th>
               <th>Username</th>
               <th>Email</th>
@@ -317,14 +319,14 @@
               <th>Type</th>
               <th>Grade/Year</th>
               <th>Course/Strand/Dept</th>
-              <th>LRN/Student/Employee #</th>
-              <th>Document ID</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {#each filteredUsers as user}
+            {#each filteredUsers as user, index}
               <tr>
+                <td>{index + 1}</td>
+                <td>{idNumberOf(user) || '-'}</td>
                 <td>{fullName(user)}</td>
                 <td>{user.username}</td>
                 <td>{user.email}</td>
@@ -350,8 +352,6 @@
                     -
                   {/if}
                 </td>
-                <td>{idNumberOf(user) || '-'}</td>
-                <td><code>{user.id}</code></td>
                 <td>
                   <button class="table-btn edit-btn" onclick={() => editUser(user)}>Edit</button>
                   <button class="table-btn delete-btn" onclick={() => deleteUser(user.id)}>Delete</button>
@@ -435,16 +435,23 @@
     font-family: 'Courier New', monospace;
   }
 
-  .data-table th:nth-child(5),
-  .data-table th:nth-child(6),
-  .data-table th:nth-child(7),
+  .data-table th:nth-child(1) {
+    width: 50px;
+    text-align: center;
+  }
+
+  .data-table td:nth-child(1) {
+    text-align: center;
+    font-weight: bold;
+  }
+
+  .data-table th:nth-child(2) {
+    min-width: 150px;
+  }
+
   .data-table th:nth-child(8),
   .data-table th:nth-child(9) {
     min-width: 120px;
-  }
-
-  .data-table td:nth-child(9) code {
-    font-size: 10px;
   }
 
   .close-btn {
