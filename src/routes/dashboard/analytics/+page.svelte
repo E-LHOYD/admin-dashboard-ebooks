@@ -122,14 +122,14 @@
   // ---------- subjects ----------
   const SUBJECTS_PREVIEW = 5;
   let showAllSubjects = $state(false);
+  let showSubjectsModal = $state(false);
 
   let allSubjectRows = $derived.by(() => {
     const map = new Map();
     for (const p of progress) {
       // A book can carry several subjects, and counts once under each.
       const subjects = bookSubjects(booksById.get(p.bookId));
-      const labels = subjects.length ? subjects : ['Unspecified'];
-      for (const subject of labels) {
+      for (const subject of subjects) {
         if (!map.has(subject)) map.set(subject, { label: subject, read: 0, viewed: 0 });
         if (p.status === 'read') map.get(subject).read++;
         else map.get(subject).viewed++;
@@ -334,10 +334,8 @@
           {/each}
         </div>
         {#if hiddenSubjectCount > 0}
-          <button class="more-btn" onclick={() => (showAllSubjects = !showAllSubjects)}>
-            {showAllSubjects
-              ? `Show top ${SUBJECTS_PREVIEW} only`
-              : `Show all ${allSubjectRows.length} subjects`}
+          <button class="more-btn" onclick={() => (showSubjectsModal = true)}>
+            Show all
           </button>
         {/if}
       {/if}
@@ -490,6 +488,38 @@
       </div>
     </section>
   {/if}
+
+  <!-- Subjects Modal -->
+  {#if showSubjectsModal}
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="subjects-modal-title" onclick={(e) => { if (e.target === e.currentTarget) showSubjectsModal = false; }}>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="subjects-modal-title">All Subjects ({allSubjectRows.filter(r => r.label !== 'Unspecified').length})</h3>
+          <button class="close-btn" onclick={() => showSubjectsModal = false} aria-label="Close modal">&times;</button>
+        </div>
+        <div class="legend">
+          <span class="key"><i class="swatch s1"></i>Read</span>
+          <span class="key"><i class="swatch s2"></i>Viewed</span>
+        </div>
+        <div class="bars">
+          {#each allSubjectRows.filter(r => r.label !== 'Unspecified') as row}
+            <div class="bar-row">
+              <div class="bar-label" title={row.label}>{row.label}</div>
+              <div class="bar-track">
+                {#if row.read}
+                  <div class="seg s1" style="width:{(row.read / subjectMax) * 100}%" title="{row.read} read"></div>
+                {/if}
+                {#if row.viewed}
+                  <div class="seg s2" style="width:{(row.viewed / subjectMax) * 100}%" title="{row.viewed} viewed"></div>
+                {/if}
+              </div>
+              <div class="bar-value">{row.read} / {row.viewed}</div>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -637,6 +667,73 @@
   .data-table th, .data-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border-soft); }
   .data-table th { color: var(--text-secondary); font-weight: 600; }
   .data-table td { color: var(--text-primary); }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+
+  .modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: var(--radius);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    max-width: 700px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  .modal-content .bars {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    color: var(--text-heading);
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .close-btn:hover {
+    background: #f8f9fa;
+    color: #333;
+  }
+
+  .close-btn:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+  }
 
   @media (max-width: 640px) {
     .bar-row { grid-template-columns: 110px 1fr auto; }
