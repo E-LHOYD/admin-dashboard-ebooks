@@ -10,7 +10,7 @@
     toDate,
     ACTIVE_NOW_MINUTES
   } from '$lib/activity';
-  import { bookSubjects } from '$lib/subjects';
+  import { bookSubjects, SUBJECTS } from '$lib/subjects';
   import { hasRole, normalizeStudentType } from '$lib/users';
 
   let loading = $state(true);
@@ -140,6 +140,32 @@
       .sort((a, b) => b.total - a.total);
   });
 
+  // For modal: include all subjects even with zero counts
+  let allSubjectsWithZeros = $derived.by(() => {
+    const subjectMap = new Map();
+    
+    // Initialize all subjects with zero counts
+    for (const subject of SUBJECTS) {
+      subjectMap.set(subject, { label: subject, read: 0, viewed: 0 });
+    }
+    
+    // Fill in actual counts from progress
+    for (const p of progress) {
+      const subjects = bookSubjects(booksById.get(p.bookId));
+      for (const subject of subjects) {
+        if (subjectMap.has(subject)) {
+          if (p.status === 'read') subjectMap.get(subject).read++;
+          else subjectMap.get(subject).viewed++;
+        }
+      }
+    }
+    
+    return [...subjectMap.values()]
+      .map((r) => ({ ...r, total: r.read + r.viewed }))
+      .filter((r) => r.label !== 'Unspecified')
+      .sort((a, b) => b.total - a.total);
+  });
+
   // The chart leads with the busiest five so the shape is readable at a glance;
   // the rest are one click away rather than dropped.
   let subjectRows = $derived(
@@ -149,7 +175,7 @@
   let hiddenSubjectCount = $derived(Math.max(0, allSubjectRows.length - SUBJECTS_PREVIEW));
 
   // Scaled against every subject, so bars keep their width when the list opens.
-  let subjectMax = $derived(Math.max(1, ...allSubjectRows.map((r) => r.total)));
+  let subjectMax = $derived(Math.max(1, ...allSubjectsWithZeros.map((r) => r.total)));
 
   // ---------- interests ----------
   // Chosen at signup, three per student, and stored on the user document.
@@ -503,7 +529,7 @@
     <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="subjects-modal-title" onclick={(e) => { if (e.target === e.currentTarget) showSubjectsModal = false; }}>
       <div class="modal-content">
         <div class="modal-header">
-          <h3 id="subjects-modal-title">All Subjects ({allSubjectRows.filter(r => r.label !== 'Unspecified').length})</h3>
+          <h3 id="subjects-modal-title">All Subjects ({allSubjectsWithZeros.length})</h3>
           <button class="close-btn" onclick={() => showSubjectsModal = false} aria-label="Close modal">&times;</button>
         </div>
         <div class="legend">
@@ -511,7 +537,7 @@
           <span class="key"><i class="swatch s2"></i>Viewed</span>
         </div>
         <div class="bars">
-          {#each allSubjectRows.filter(r => r.label !== 'Unspecified') as row}
+          {#each allSubjectsWithZeros as row}
             <div class="bar-row">
               <div class="bar-label" title={row.label}>{row.label}</div>
               <div class="bar-track">
