@@ -1,6 +1,6 @@
 <script>
   import { auth, db } from '$lib/firebase';
-  import { createUserWithEmailAndPassword } from 'firebase/auth';
+  import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
   import { collection, doc, setDoc } from 'firebase/firestore';
   import { goto } from '$app/navigation';
   import { SUBJECTS } from '$lib/subjects';
@@ -200,6 +200,16 @@
   function cancel() {
     goto('/dashboard');
   }
+
+  // Logout
+  async function logout() {
+    try {
+      await signOut(auth);
+      goto('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  }
 </script>
 
 <div class="register-container">
@@ -212,7 +222,8 @@
       </nav>
     </div>
     <div class="header-actions">
-      <button class="cancel-btn" onclick={cancel}>Cancel</button>
+      <button class="dashboard-btn" onclick={() => goto('/dashboard')}>Return to Dashboard</button>
+      <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
   </header>
 
@@ -652,5 +663,21 @@
   .password-toggle-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .dashboard-btn {
+    background: white;
+    color: var(--brand);
+    border: 2px solid var(--brand);
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+  }
+
+  .dashboard-btn:hover {
+    background: var(--brand);
+    color: white;
   }
 </style>

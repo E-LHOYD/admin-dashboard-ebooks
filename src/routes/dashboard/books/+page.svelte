@@ -392,6 +392,7 @@
         <table class="data-table">
           <thead>
             <tr>
+              <th>#</th>
               <th>Title</th>
               <th>Author</th>
               <th>Subject</th>
@@ -403,8 +404,9 @@
             </tr>
           </thead>
           <tbody>
-            {#each filteredBooks as book}
+            {#each filteredBooks as book, index}
               <tr>
+                <td>{index + 1}</td>
                 <td>{book.title}</td>
                 <td>{book.author}</td>
                 <td>{subjectsLabel(book) || '—'}</td>
@@ -736,5 +738,15 @@
     outline: none;
     border-color: #033047;
     box-shadow: 0 0 0 2px rgba(3, 48, 71, 0.25);
+  }
+
+  .data-table th:nth-child(1) {
+    width: 50px;
+    text-align: center;
+  }
+
+  .data-table td:nth-child(1) {
+    text-align: center;
+    font-weight: bold;
   }
 </style>

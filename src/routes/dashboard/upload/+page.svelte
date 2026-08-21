@@ -170,6 +170,7 @@
       </nav>
     </div>
     <div class="header-actions">
+      <button class="dashboard-btn" onclick={() => goto('/dashboard/books')}>Back</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
   </header>
@@ -458,6 +459,22 @@
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+
+  .dashboard-btn {
+    background: white;
+    color: var(--brand);
+    border: 2px solid var(--brand);
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+  }
+
+  .dashboard-btn:hover {
+    background: var(--brand);
+    color: white;
   }
 
   @media (max-width: 768px) {

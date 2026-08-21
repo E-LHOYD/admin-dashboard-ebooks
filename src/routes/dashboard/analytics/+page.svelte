@@ -239,6 +239,7 @@
       <nav class="breadcrumb"><a href="/dashboard">Dashboard</a> / Analytics</nav>
     </div>
     <div class="header-actions">
+      <button class="dashboard-btn" onclick={() => goto('/dashboard')}>Return to Dashboard</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
   </header>
@@ -545,6 +546,22 @@
     border-radius: 5px;
     padding: 12px 16px;
     margin-bottom: 16px;
+  }
+
+  .dashboard-btn {
+    background: white;
+    color: var(--brand);
+    border: 2px solid var(--brand);
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+  }
+
+  .dashboard-btn:hover {
+    background: var(--brand);
+    color: white;
   }
 
   .section { margin-bottom: 40px; }
