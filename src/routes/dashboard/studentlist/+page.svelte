@@ -32,6 +32,9 @@
     year: ''
   });
 
+  // Search state
+  let searchQuery = $state('');
+
   // Student form data
   let studentForm = $state({
     firstName: '',
@@ -60,6 +63,25 @@
   // Apply filters to users
   function applyFilters() {
     filteredUsers = users.filter(user => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const name = fullName(user)?.toLowerCase() || '';
+        const idNumber = idNumberOf(user)?.toLowerCase() || '';
+        const username = user.username?.toLowerCase() || '';
+        const email = user.email?.toLowerCase() || '';
+
+        const matchesSearch = 
+          name.includes(query) ||
+          idNumber.includes(query) ||
+          username.includes(query) ||
+          email.includes(query);
+
+        if (!matchesSearch) {
+          return false;
+        }
+      }
+
       // Type filter
       // Read through the normaliser: the app writes studentType 'senior-high'
       // where the dashboard wrote type 'shs', and this page used to see only
@@ -108,11 +130,13 @@
       grade: '',
       year: ''
     };
+    searchQuery = '';
     applyFilters();
   }
 
   // Watch for filter changes
   $effect(() => {
+    searchQuery;
     if (users.length > 0) {
       applyFilters();
     }
@@ -233,13 +257,22 @@
     <section class="filters-section">
       <h3>Filters</h3>
       <div class="filters-container">
+        <div class="search-group">
+          <label for="searchInput">Search</label>
+          <input 
+            id="searchInput" 
+            type="text" 
+            placeholder="Search name, LRN/student#, username, or email" 
+            bind:value={searchQuery}
+          />
+        </div>
+        
         <div class="filter-group">
           <label for="roleFilter">Role</label>
           <select id="roleFilter" bind:value={filters.role} onchange={applyFilters}>
             <option value="">All Roles</option>
             <option value="Student">Student</option>
             <option value="Teacher">Teacher</option>
-            <option value="Admin">Admin</option>
           </select>
         </div>
         

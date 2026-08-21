@@ -231,6 +231,24 @@
 
       <form onsubmit={handleRegister} class="registration-form">
         <div class="form-section">
+          <h3>Role Selection</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="role">Role *</label>
+              <select 
+                id="role" 
+                bind:value={formData.role} 
+                required
+                disabled={loading}
+              >
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
           <h3>Personal Information</h3>
           <div class="form-grid">
             <div class="form-group">
@@ -432,20 +450,6 @@
                 required
                 disabled={loading}
               />
-            </div>
-            
-            <div class="form-group">
-              <label for="role">Role *</label>
-              <select 
-                id="role" 
-                bind:value={formData.role} 
-                required
-                disabled={loading}
-              >
-                <option value="student">Student</option>
-                <option value="teacher">Teacher</option>
-                <option value="admin">Admin</option>
-              </select>
             </div>
           </div>
         </div>
