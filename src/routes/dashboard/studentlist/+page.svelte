@@ -244,7 +244,7 @@
         Return to Dashboard
       </button>
       <button class="add-btn" onclick={() => goto('/dashboard/register')}>
-        + Register User
+        Register User
       </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>

@@ -210,6 +210,13 @@
       console.error('Error logging out:', error);
     }
   }
+
+  // Auto-uppercase name fields
+  $effect(() => {
+    if (formData.firstName) formData.firstName = formData.firstName.toUpperCase();
+    if (formData.middleName) formData.middleName = formData.middleName.toUpperCase();
+    if (formData.surname) formData.surname = formData.surname.toUpperCase();
+  });
 </script>
 
 <div class="register-container">
@@ -679,5 +686,11 @@
   .dashboard-btn:hover {
     background: var(--brand);
     color: white;
+  }
+
+  #firstName,
+  #middleName,
+  #surname {
+    text-transform: uppercase;
   }
 </style>

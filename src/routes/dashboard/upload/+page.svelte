@@ -211,7 +211,7 @@
                   <div class="upload-icon">📁</div>
                   <div>Click to select the book file</div>
                   <div class="upload-hint">
-                    {ACCEPTED_EXTENSIONS.join(', ').toUpperCase()} &middot; up to {sizeLimitLabel}
+                    PDF &middot; up to {sizeLimitLabel}
                   </div>
                 </div>
               {/if}
@@ -475,6 +475,11 @@
   .dashboard-btn:hover {
     background: var(--brand);
     color: white;
+  }
+
+  #book-title,
+  #book-author {
+    text-transform: uppercase;
   }
 
   @media (max-width: 768px) {

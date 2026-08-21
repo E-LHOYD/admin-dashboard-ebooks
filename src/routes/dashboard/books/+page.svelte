@@ -749,4 +749,9 @@
     text-align: center;
     font-weight: bold;
   }
+
+  #edit-title,
+  #edit-author {
+    text-transform: uppercase;
+  }
 </style>
