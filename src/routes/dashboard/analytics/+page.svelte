@@ -194,19 +194,29 @@
   let unmatchedInterests = $derived(interestRows.filter((r) => !r.inLibrary));
 
   // ---------- most opened books ----------
-  let topBooks = $derived.by(() => {
+  const BOOKS_PREVIEW = 8;
+  let showAllBooks = $state(false);
+  let showBooksModal = $state(false);
+
+  let allBookRows = $derived.by(() => {
     const map = new Map();
     for (const p of progress) {
       const title = booksById.get(p.bookId)?.title || 'Removed book';
-      map.set(title, (map.get(title) || 0) + 1);
+      if (!map.has(title)) map.set(title, { label: title, read: 0, viewed: 0 });
+      if (p.status === 'read') map.get(title).read++;
+      else map.get(title).viewed++;
     }
-    return [...map.entries()]
-      .map(([label, count]) => ({ label, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
+    return [...map.values()]
+      .map((r) => ({ ...r, total: r.read + r.viewed }))
+      .sort((a, b) => b.total - a.total);
   });
 
-  let topBookMax = $derived(Math.max(1, ...topBooks.map((b) => b.count)));
+  let bookRows = $derived(
+    showAllBooks ? allBookRows : allBookRows.slice(0, BOOKS_PREVIEW)
+  );
+
+  let hiddenBookCount = $derived(Math.max(0, allBookRows.length - BOOKS_PREVIEW));
+  let bookMax = $derived(Math.max(1, ...allBookRows.map((r) => r.total)));
 
   // ---------- academic breakdown ----------
   let strands = $derived(
@@ -378,21 +388,35 @@
 
     <!-- Most opened -->
     <section class="section">
-      <h2>Most opened books</h2>
-      {#if topBooks.length === 0}
+      <h2>Most books read and viewed</h2>
+      {#if allBookRows.length === 0}
         <p class="empty">No books have been opened yet.</p>
       {:else}
+        <div class="legend">
+          <span class="key"><i class="swatch s1"></i>Read</span>
+          <span class="key"><i class="swatch s2"></i>Viewed</span>
+        </div>
         <div class="bars">
-          {#each topBooks as row}
+          {#each bookRows as row}
             <div class="bar-row">
               <div class="bar-label" title={row.label}>{row.label}</div>
               <div class="bar-track">
-                <div class="seg seq" style="width:{(row.count / topBookMax) * 100}%"></div>
+                {#if row.read}
+                  <div class="seg s1" style="width:{(row.read / bookMax) * 100}%" title="{row.read} read"></div>
+                {/if}
+                {#if row.viewed}
+                  <div class="seg s2" style="width:{(row.viewed / bookMax) * 100}%" title="{row.viewed} viewed"></div>
+                {/if}
               </div>
-              <div class="bar-value">{row.count}</div>
+              <div class="bar-value">{row.read} / {row.viewed}</div>
             </div>
           {/each}
         </div>
+        {#if hiddenBookCount > 0}
+          <button class="more-btn" onclick={() => (showBooksModal = true)}>
+            Show all
+          </button>
+        {/if}
       {/if}
     </section>
 
@@ -511,6 +535,38 @@
                 {/if}
                 {#if row.viewed}
                   <div class="seg s2" style="width:{(row.viewed / subjectMax) * 100}%" title="{row.viewed} viewed"></div>
+                {/if}
+              </div>
+              <div class="bar-value">{row.read} / {row.viewed}</div>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Books Modal -->
+  {#if showBooksModal}
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="books-modal-title" onclick={(e) => { if (e.target === e.currentTarget) showBooksModal = false; }}>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="books-modal-title">All Books ({allBookRows.length})</h3>
+          <button class="close-btn" onclick={() => showBooksModal = false} aria-label="Close modal">&times;</button>
+        </div>
+        <div class="legend">
+          <span class="key"><i class="swatch s1"></i>Read</span>
+          <span class="key"><i class="swatch s2"></i>Viewed</span>
+        </div>
+        <div class="bars">
+          {#each allBookRows as row}
+            <div class="bar-row">
+              <div class="bar-label" title={row.label}>{row.label}</div>
+              <div class="bar-track">
+                {#if row.read}
+                  <div class="seg s1" style="width:{(row.read / bookMax) * 100}%" title="{row.read} read"></div>
+                {/if}
+                {#if row.viewed}
+                  <div class="seg s2" style="width:{(row.viewed / bookMax) * 100}%" title="{row.viewed} viewed"></div>
                 {/if}
               </div>
               <div class="bar-value">{row.read} / {row.viewed}</div>
