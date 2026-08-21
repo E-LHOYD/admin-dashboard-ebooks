@@ -195,7 +195,6 @@
 
   // ---------- most opened books ----------
   const BOOKS_PREVIEW = 8;
-  let showAllBooks = $state(false);
   let showBooksModal = $state(false);
 
   let allBookRows = $derived.by(() => {
@@ -211,10 +210,7 @@
       .sort((a, b) => b.total - a.total);
   });
 
-  let bookRows = $derived(
-    showAllBooks ? allBookRows : allBookRows.slice(0, BOOKS_PREVIEW)
-  );
-
+  let bookRows = $derived(allBookRows.slice(0, BOOKS_PREVIEW));
   let hiddenBookCount = $derived(Math.max(0, allBookRows.length - BOOKS_PREVIEW));
   let bookMax = $derived(Math.max(1, ...allBookRows.map((r) => r.total)));
 
@@ -231,6 +227,7 @@
   let booksWithoutFile = $derived(books.filter((b) => !b.fileUrl));
   let openedBookIds = $derived(new Set(progress.map((p) => p.bookId)));
   let neverOpened = $derived(books.filter((b) => !openedBookIds.has(b.id)));
+  let showNeverOpenedModal = $state(false);
 
   async function logout() {
     try {
@@ -454,27 +451,15 @@
     <section class="section">
       <h2>Needs attention</h2>
       <div class="kpi-row">
-        <div class="kpi warn">
-          <div class="kpi-value">{booksWithoutFile.length}</div>
-          <div class="kpi-label">Books with no file — unreadable in the app</div>
-        </div>
-        <div class="kpi">
+        <div class="kpi clickable" onclick={() => showNeverOpenedModal = true}>
           <div class="kpi-value">{neverOpened.length}</div>
           <div class="kpi-label">Books nobody has opened</div>
         </div>
-        <div class="kpi">
+        <div class="kpi clickable" onclick={() => goto('/dashboard/books')}>
           <div class="kpi-value">{books.length}</div>
           <div class="kpi-label">Books in the library</div>
         </div>
       </div>
-      {#if booksWithoutFile.length > 0}
-        <ul class="mini-list">
-          {#each booksWithoutFile.slice(0, 6) as book}
-            <li>{book.title}</li>
-          {/each}
-          {#if booksWithoutFile.length > 6}<li class="muted">and {booksWithoutFile.length - 6} more</li>{/if}
-        </ul>
-      {/if}
     </section>
 
     <section class="section">
@@ -572,6 +557,32 @@
               <div class="bar-value">{row.read} / {row.viewed}</div>
             </div>
           {/each}
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Never Opened Books Modal -->
+  {#if showNeverOpenedModal}
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="never-opened-modal-title" onclick={(e) => { if (e.target === e.currentTarget) showNeverOpenedModal = false; }}>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="never-opened-modal-title">Books Nobody Has Opened ({neverOpened.length})</h3>
+          <button class="close-btn" onclick={() => showNeverOpenedModal = false} aria-label="Close modal">&times;</button>
+        </div>
+        <div class="modal-table">
+          <table class="data-table">
+            <thead><tr><th>Title</th><th>Author</th><th>Subject</th></tr></thead>
+            <tbody>
+              {#each neverOpened as book}
+                <tr>
+                  <td>{book.title}</td>
+                  <td>{book.author}</td>
+                  <td>{book.subjects ? book.subjects.join(', ') : '—'}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -749,6 +760,21 @@
   .modal-content .bars {
     max-height: 60vh;
     overflow-y: auto;
+  }
+
+  .modal-table {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   .modal-header {
