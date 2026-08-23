@@ -26,7 +26,7 @@
     confirmPassword: '',
     role: 'student',
     interests: [],
-    academicStatus: 'Active' // Active, Graduated, Inactive (for students only)
+    activityStatus: 'Active' // Active, Graduated, Inactive (for students and teachers)
   });
 
   // The app makes every account choose exactly three, so this does too.
@@ -61,14 +61,20 @@
       return;
     }
 
-    if (formData.role === 'student' && !formData.academicStatus) {
-      error = 'Please select academic status (Active, Graduated, or Inactive)';
+    if (formData.role === 'student' && !formData.activityStatus) {
+      error = 'Please select activity status (Active, Graduated, or Inactive)';
       loading = false;
       return;
     }
 
     if (formData.role === 'teacher' && (!formData.employeeNumber || !formData.department)) {
       error = 'Please fill in all teacher fields';
+      loading = false;
+      return;
+    }
+
+    if (formData.role === 'teacher' && !formData.activityStatus) {
+      error = 'Please select activity status (Active, Graduated, or Inactive)';
       loading = false;
       return;
     }
@@ -135,7 +141,7 @@
         // older one the student list still filters on.
         userData.studentType = formData.type === 'shs' ? 'senior-high' : 'college';
         userData.type = formData.type;
-        userData.academicStatus = formData.academicStatus;
+        userData.activityStatus = formData.activityStatus;
 
         if (formData.type === 'college') {
           userData.studentNumber = formData.studentNumber;
@@ -151,6 +157,7 @@
         // and department stand in their place.
         userData.employeeNumber = formData.employeeNumber;
         userData.department = formData.department;
+        userData.activityStatus = formData.activityStatus;
       }
 
       await setDoc(doc(db, 'users', user.uid), userData);
@@ -177,7 +184,7 @@
         confirmPassword: '',
         role: 'student',
         interests: [],
-        academicStatus: 'Active'
+        activityStatus: 'Active'
       };
 
       // Redirect after 2 seconds
@@ -425,12 +432,12 @@
             {/if}
           </div>
 
-          {#if formData.role === 'student'}
+          {#if formData.role === 'student' || formData.role === 'teacher'}
             <div class="form-group" style="margin-top: 20px;">
-              <label for="academicStatus">Academic Status *</label>
+              <label for="activityStatus">Activity Status *</label>
               <select 
-                id="academicStatus" 
-                bind:value={formData.academicStatus} 
+                id="activityStatus" 
+                bind:value={formData.activityStatus} 
                 required
                 disabled={loading}
               >

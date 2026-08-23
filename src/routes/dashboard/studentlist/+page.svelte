@@ -30,7 +30,7 @@
     role: '',
     grade: '',
     year: '',
-    academicStatus: ''
+    activityStatus: ''
   });
 
   // Search state
@@ -45,7 +45,7 @@
     username: '',
     password: '',
     role: 'student',
-    academicStatus: 'Active'
+    activityStatus: 'Active'
   });
 
   // Load users data
@@ -118,8 +118,8 @@
         return false;
       }
 
-      // Academic status filter (for students)
-      if (filters.academicStatus && user.academicStatus !== filters.academicStatus) {
+      // Activity status filter (for students and teachers)
+      if (filters.activityStatus && user.activityStatus !== filters.activityStatus) {
         return false;
       }
 
@@ -136,7 +136,7 @@
       role: '',
       grade: '',
       year: '',
-      academicStatus: ''
+      activityStatus: ''
     };
     searchQuery = '';
     applyFilters();
@@ -162,7 +162,7 @@
         username: '',
         password: '',
         role: 'student',
-        academicStatus: 'Active'
+        activityStatus: 'Active'
       };
       showForm = false;
       await loadUsers(); // Refresh data
@@ -191,7 +191,7 @@
         username: '',
         password: '',
         role: 'student',
-        academicStatus: 'Active'
+        activityStatus: 'Active'
       };
       showForm = false;
       await loadUsers(); // Refresh data
@@ -341,8 +341,8 @@
         </div>
 
         <div class="filter-group">
-          <label for="academicStatusFilter">Academic Status</label>
-          <select id="academicStatusFilter" bind:value={filters.academicStatus} onchange={applyFilters}>
+          <label for="activityStatusFilter">Activity Status</label>
+          <select id="activityStatusFilter" bind:value={filters.activityStatus} onchange={applyFilters}>
             <option value="">All Status</option>
             <option value="Active">Active</option>
             <option value="Graduated">Graduated</option>
@@ -372,7 +372,7 @@
               <th>Type</th>
               <th>Grade/Year</th>
               <th>Course/Strand/Dept</th>
-              <th>Academic Status</th>
+              <th>Activity Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -407,8 +407,8 @@
                   {/if}
                 </td>
                 <td>
-                  {#if hasRole(user, 'student')}
-                    {user.academicStatus || 'Active'}
+                  {#if hasRole(user, 'student') || hasRole(user, 'teacher')}
+                    {user.activityStatus || 'Active'}
                   {:else}
                     -
                   {/if}
@@ -441,8 +441,8 @@
             <input type="email" placeholder="Email" bind:value={studentForm.email} required>
             <input type="text" placeholder="Username" bind:value={studentForm.username} required>
             <input type="password" placeholder="Password" bind:value={studentForm.password} required>
-            {#if studentForm.role === 'student'}
-              <select bind:value={studentForm.academicStatus} required>
+            {#if studentForm.role === 'student' || studentForm.role === 'teacher'}
+              <select bind:value={studentForm.activityStatus} required>
                 <option value="Active">Active</option>
                 <option value="Graduated">Graduated</option>
                 <option value="Inactive">Inactive</option>

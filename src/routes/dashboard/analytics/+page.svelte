@@ -227,12 +227,12 @@
 
   let yearLevelMax = $derived(Math.max(1, ...yearLevelRows.map((r) => r.count)));
 
-  // ---------- academic status ----------
-  let academicStatusRows = $derived.by(() => {
+  // ---------- activity status ----------
+  let activityStatusRows = $derived.by(() => {
     const map = new Map();
     for (const user of users) {
-      if (!hasRole(user, 'student')) continue;
-      const status = user.academicStatus || 'Active';
+      if (!hasRole(user, 'student') && !hasRole(user, 'teacher')) continue;
+      const status = user.activityStatus || 'Active';
       map.set(status, (map.get(status) || 0) + 1);
     }
     return [...map.entries()]
@@ -240,7 +240,7 @@
       .sort((a, b) => b.count - a.count);
   });
 
-  let academicStatusMax = $derived(Math.max(1, ...academicStatusRows.map((r) => r.count)));
+  let activityStatusMax = $derived(Math.max(1, ...activityStatusRows.map((r) => r.count)));
 
   // ---------- interests ----------
   // Chosen at signup, three per student, and stored on the user document.
@@ -491,21 +491,21 @@
       {/if}
     </section>
 
-    <!-- Academic Status -->
+    <!-- Activity Status -->
     <section class="section">
-      <h2>Students by Academic Status</h2>
-      {#if academicStatusRows.length === 0}
-        <p class="empty">No student academic status data available.</p>
+      <h2>Users by Activity Status</h2>
+      {#if activityStatusRows.length === 0}
+        <p class="empty">No user activity status data available.</p>
       {:else}
         <div class="bars">
-          {#each academicStatusRows as row}
+          {#each activityStatusRows as row}
             <div class="bar-row">
               <div class="bar-label" title={row.label}>{row.label}</div>
               <div class="bar-track">
                 <div
                   class="seg seq"
-                  style="width:{(row.count / academicStatusMax) * 100}%"
-                  title="{row.count} students"
+                  style="width:{(row.count / activityStatusMax) * 100}%"
+                  title="{row.count} users"
                 ></div>
               </div>
               <div class="bar-value">{row.count}</div>
