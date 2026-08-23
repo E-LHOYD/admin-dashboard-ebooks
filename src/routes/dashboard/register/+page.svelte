@@ -3,7 +3,7 @@
   import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
   import { collection, doc, setDoc } from 'firebase/firestore';
   import { goto } from '$app/navigation';
-  import { SUBJECTS } from '$lib/subjects';
+  import { DEFAULT_SUBJECTS } from '$lib/subjects';
   import { DEPARTMENTS } from '$lib/users';
 
   // Form state
@@ -25,7 +25,8 @@
     password: '',
     confirmPassword: '',
     role: 'student',
-    interests: []
+    interests: [],
+    academicStatus: 'Active' // Active, Graduated, Inactive (for students only)
   });
 
   // The app makes every account choose exactly three, so this does too.
@@ -56,6 +57,12 @@
     // Additional validation for student type
     if (formData.role === 'student' && !formData.type) {
       error = 'Please select student type (College or SHS)';
+      loading = false;
+      return;
+    }
+
+    if (formData.role === 'student' && !formData.academicStatus) {
+      error = 'Please select academic status (Active, Graduated, or Inactive)';
       loading = false;
       return;
     }
@@ -128,6 +135,7 @@
         // older one the student list still filters on.
         userData.studentType = formData.type === 'shs' ? 'senior-high' : 'college';
         userData.type = formData.type;
+        userData.academicStatus = formData.academicStatus;
 
         if (formData.type === 'college') {
           userData.studentNumber = formData.studentNumber;
@@ -168,7 +176,8 @@
         password: '',
         confirmPassword: '',
         role: 'student',
-        interests: []
+        interests: [],
+        academicStatus: 'Active'
       };
 
       // Redirect after 2 seconds
@@ -415,6 +424,22 @@
               </div>
             {/if}
           </div>
+
+          {#if formData.role === 'student'}
+            <div class="form-group" style="margin-top: 20px;">
+              <label for="academicStatus">Academic Status *</label>
+              <select 
+                id="academicStatus" 
+                bind:value={formData.academicStatus} 
+                required
+                disabled={loading}
+              >
+                <option value="Active">Active</option>
+                <option value="Graduated">Graduated</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          {/if}
         {/if}
 
         {#if formData.role === 'teacher'}
@@ -479,7 +504,7 @@
             app uses them the same way.
           </p>
           <div class="interest-grid">
-            {#each SUBJECTS as subject}
+            {#each DEFAULT_SUBJECTS as subject}
               <label
                 class="interest-option"
                 class:disabled={loading ||

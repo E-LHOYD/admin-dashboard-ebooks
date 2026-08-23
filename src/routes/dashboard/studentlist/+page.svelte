@@ -29,7 +29,8 @@
     strand: '',
     role: '',
     grade: '',
-    year: ''
+    year: '',
+    academicStatus: ''
   });
 
   // Search state
@@ -43,7 +44,8 @@
     email: '',
     username: '',
     password: '',
-    role: 'student'
+    role: 'student',
+    academicStatus: 'Active'
   });
 
   // Load users data
@@ -115,7 +117,12 @@
       if (filters.year && user.year !== filters.year) {
         return false;
       }
-      
+
+      // Academic status filter (for students)
+      if (filters.academicStatus && user.academicStatus !== filters.academicStatus) {
+        return false;
+      }
+
       return true;
     });
   }
@@ -128,7 +135,8 @@
       strand: '',
       role: '',
       grade: '',
-      year: ''
+      year: '',
+      academicStatus: ''
     };
     searchQuery = '';
     applyFilters();
@@ -153,7 +161,8 @@
         email: '',
         username: '',
         password: '',
-        role: 'student'
+        role: 'student',
+        academicStatus: 'Active'
       };
       showForm = false;
       await loadUsers(); // Refresh data
@@ -181,7 +190,8 @@
         email: '',
         username: '',
         password: '',
-        role: 'student'
+        role: 'student',
+        academicStatus: 'Active'
       };
       showForm = false;
       await loadUsers(); // Refresh data
@@ -329,7 +339,17 @@
             <option value="Grade 12">Grade 12</option>
           </select>
         </div>
-        
+
+        <div class="filter-group">
+          <label for="academicStatusFilter">Academic Status</label>
+          <select id="academicStatusFilter" bind:value={filters.academicStatus} onchange={applyFilters}>
+            <option value="">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Graduated">Graduated</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+
         <div class="filter-actions">
           <button class="reset-filters-btn" onclick={resetFilters}>Reset Filters</button>
           <span class="results-count">Showing {filteredUsers.length} of {users.length} users</span>
@@ -352,6 +372,7 @@
               <th>Type</th>
               <th>Grade/Year</th>
               <th>Course/Strand/Dept</th>
+              <th>Academic Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -386,6 +407,13 @@
                   {/if}
                 </td>
                 <td>
+                  {#if hasRole(user, 'student')}
+                    {user.academicStatus || 'Active'}
+                  {:else}
+                    -
+                  {/if}
+                </td>
+                <td>
                   <button class="table-btn edit-btn" onclick={() => editUser(user)}>Edit</button>
                   <button class="table-btn delete-btn" onclick={() => deleteUser(user.id)}>Delete</button>
                 </td>
@@ -413,10 +441,17 @@
             <input type="email" placeholder="Email" bind:value={studentForm.email} required>
             <input type="text" placeholder="Username" bind:value={studentForm.username} required>
             <input type="password" placeholder="Password" bind:value={studentForm.password} required>
+            {#if studentForm.role === 'student'}
+              <select bind:value={studentForm.academicStatus} required>
+                <option value="Active">Active</option>
+                <option value="Graduated">Graduated</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            {/if}
           </div>
           <div class="modal-actions">
             <button type="button" class="cancel-btn" onclick={() => showForm = false}>Cancel</button>
-            <button type="submit" class="submit-btn">{editingStudent ? 'Update Student' : 'Add Student'}</button>
+            <button type="submit" class="submit-btn">{editingUser ? 'Update User' : 'Add User'}</button>
           </div>
         </form>
       </div>

@@ -10,7 +10,7 @@
     toDate,
     ACTIVE_NOW_MINUTES
   } from '$lib/activity';
-  import { bookSubjects, SUBJECTS } from '$lib/subjects';
+  import { bookSubjects, DEFAULT_SUBJECTS } from '$lib/subjects';
   import { hasRole, normalizeStudentType } from '$lib/users';
 
   let loading = $state(true);
@@ -81,6 +81,23 @@
   let readRecords = $derived(progress.filter((p) => p.status === 'read'));
   let viewedRecords = $derived(progress.filter((p) => p.status === 'viewed'));
 
+  // ---------- reading frequency metrics ----------
+  let totalReadingDuration = $derived(
+    progress.reduce((total, p) => total + (p.totalDurationMinutes || 0), 0)
+  );
+
+  let totalReadingSessions = $derived(
+    progress.reduce((total, p) => total + (p.sessionCount || 0), 0)
+  );
+
+  let averageSessionDuration = $derived.by(() => {
+    const sessions = progress.filter((p) => p.sessionCount > 0);
+    if (sessions.length === 0) return 0;
+    const total = sessions.reduce((sum, p) => sum + (p.totalDurationMinutes || 0), 0);
+    const count = sessions.reduce((sum, p) => sum + (p.sessionCount || 0), 0);
+    return Math.round(total / count);
+  });
+
   let averagePercent = $derived.by(() => {
     const values = progress.map((p) => p.percentage).filter((v) => typeof v === 'number');
     return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
@@ -143,9 +160,9 @@
   // For modal: include all subjects even with zero counts
   let allSubjectsWithZeros = $derived.by(() => {
     const subjectMap = new Map();
-    
+
     // Initialize all subjects with zero counts
-    for (const subject of SUBJECTS) {
+    for (const subject of DEFAULT_SUBJECTS) {
       subjectMap.set(subject, { label: subject, read: 0, viewed: 0 });
     }
     
@@ -176,6 +193,54 @@
 
   // Scaled against every subject, so bars keep their width when the list opens.
   let subjectMax = $derived(Math.max(1, ...allSubjectsWithZeros.map((r) => r.total)));
+
+  // ---------- courses ----------
+  let courseRows = $derived.by(() => {
+    const map = new Map();
+    for (const user of users) {
+      if (!user.course || typeof user.course !== 'string') continue;
+      const course = user.course.trim();
+      if (!course) continue;
+      map.set(course, (map.get(course) || 0) + 1);
+    }
+    return [...map.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+  });
+
+  let courseMax = $derived(Math.max(1, ...courseRows.map((r) => r.count)));
+
+  // ---------- year levels ----------
+  let yearLevelRows = $derived.by(() => {
+    const map = new Map();
+    for (const user of users) {
+      const year = user.year || user.grade;
+      if (!year || typeof year !== 'string') continue;
+      const level = year.trim();
+      if (!level) continue;
+      map.set(level, (map.get(level) || 0) + 1);
+    }
+    return [...map.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+  });
+
+  let yearLevelMax = $derived(Math.max(1, ...yearLevelRows.map((r) => r.count)));
+
+  // ---------- academic status ----------
+  let academicStatusRows = $derived.by(() => {
+    const map = new Map();
+    for (const user of users) {
+      if (!hasRole(user, 'student')) continue;
+      const status = user.academicStatus || 'Active';
+      map.set(status, (map.get(status) || 0) + 1);
+    }
+    return [...map.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+  });
+
+  let academicStatusMax = $derived(Math.max(1, ...academicStatusRows.map((r) => r.count)));
 
   // ---------- interests ----------
   // Chosen at signup, three per student, and stored on the user document.
@@ -291,6 +356,9 @@
         <div class="kpi"><div class="kpi-value">{readRecords.length}</div><div class="kpi-label">Books read</div></div>
         <div class="kpi"><div class="kpi-value">{viewedRecords.length}</div><div class="kpi-label">Books viewed</div></div>
         <div class="kpi"><div class="kpi-value">{pct(averagePercent)}</div><div class="kpi-label">Average progress</div></div>
+        <div class="kpi"><div class="kpi-value">{Math.round(totalReadingDuration / 60)}h</div><div class="kpi-label">Total reading time</div></div>
+        <div class="kpi"><div class="kpi-value">{totalReadingSessions}</div><div class="kpi-label">Reading sessions</div></div>
+        <div class="kpi"><div class="kpi-value">{averageSessionDuration}m</div><div class="kpi-label">Avg session duration</div></div>
         <div class="kpi"><div class="kpi-value">{shelvedBookCount}</div><div class="kpi-label">Books in created shelves</div></div>
         <div class="kpi"><div class="kpi-value">{activeNow}</div><div class="kpi-label">Active users (last {ACTIVE_NOW_MINUTES} min)</div></div>
         <div class="kpi"><div class="kpi-value">{interestRows.length}</div><div class="kpi-label">Subjects chosen as interests</div></div>
@@ -299,7 +367,8 @@
       </div>
       <p class="note">
         Read and viewed are counted per book per reader. A book counts as read once a
-        reader passes 10% of it, and as viewed below that.
+        reader passes 10% of it, and as viewed below that. Reading time tracks total
+        minutes spent reading across all sessions.
       </p>
     </section>
 
@@ -371,6 +440,78 @@
             Show all
           </button>
         {/if}
+      {/if}
+    </section>
+
+    <!-- Courses -->
+    <section class="section">
+      <h2>Students by Course</h2>
+      {#if courseRows.length === 0}
+        <p class="empty">No student course data available.</p>
+      {:else}
+        <div class="bars">
+          {#each courseRows as row}
+            <div class="bar-row">
+              <div class="bar-label" title={row.label}>{row.label}</div>
+              <div class="bar-track">
+                <div
+                  class="seg seq"
+                  style="width:{(row.count / courseMax) * 100}%"
+                  title="{row.count} students"
+                ></div>
+              </div>
+              <div class="bar-value">{row.count}</div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
+
+    <!-- Year Levels -->
+    <section class="section">
+      <h2>Students by Year Level</h2>
+      {#if yearLevelRows.length === 0}
+        <p class="empty">No student year level data available.</p>
+      {:else}
+        <div class="bars">
+          {#each yearLevelRows as row}
+            <div class="bar-row">
+              <div class="bar-label" title={row.label}>{row.label}</div>
+              <div class="bar-track">
+                <div
+                  class="seg seq"
+                  style="width:{(row.count / yearLevelMax) * 100}%"
+                  title="{row.count} students"
+                ></div>
+              </div>
+              <div class="bar-value">{row.count}</div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
+
+    <!-- Academic Status -->
+    <section class="section">
+      <h2>Students by Academic Status</h2>
+      {#if academicStatusRows.length === 0}
+        <p class="empty">No student academic status data available.</p>
+      {:else}
+        <div class="bars">
+          {#each academicStatusRows as row}
+            <div class="bar-row">
+              <div class="bar-label" title={row.label}>{row.label}</div>
+              <div class="bar-track">
+                <div
+                  class="seg seq"
+                  style="width:{(row.count / academicStatusMax) * 100}%"
+                  title="{row.count} students"
+                ></div>
+              </div>
+              <div class="bar-value">{row.count}</div>
+            </div>
+          {/each}
+        </div>
       {/if}
     </section>
 

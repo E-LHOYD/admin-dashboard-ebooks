@@ -1,9 +1,8 @@
 // The fixed set of subject labels a book can carry. A book may have several.
 //
-// Kept as a list rather than free text so the dashboard, the analytics page and
-// the mobile app all group by exactly the same labels; typing them by hand
-// produced "Math", "math" and "Mathematics" as three separate subjects.
-export const SUBJECTS = [
+// This is now managed dynamically through the admin dashboard subjects page.
+// The constant is kept for backwards compatibility and as a default fallback.
+export const DEFAULT_SUBJECTS = [
 	'Math',
 	'Science',
 	'Filipino',
@@ -16,6 +15,9 @@ export const SUBJECTS = [
 	'Music',
 	'Literature'
 ];
+
+// Default subjects export for backwards compatibility
+export const SUBJECTS = DEFAULT_SUBJECTS;
 
 /**
  * The subjects a book carries, tolerating the older single-string field.
