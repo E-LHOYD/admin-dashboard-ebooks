@@ -3,6 +3,7 @@
   import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
+  import { DEFAULT_SUBJECTS } from '$lib/subjects';
 
   // Reactive state variables
   let subjects = $state([]);
@@ -94,6 +95,32 @@
     }
   }
 
+  // Initialize default subjects manually
+  async function initializeDefaultSubjectsManually() {
+    if (!confirm('This will add the default subjects (Math, Science, Filipino, etc.) to the subjects list. Continue?')) {
+      return;
+    }
+
+    try {
+      for (const subjectName of DEFAULT_SUBJECTS) {
+        // Check if subject already exists
+        const existingSubject = subjects.find(s => s.name === subjectName);
+        if (!existingSubject) {
+          await addDoc(collection(db, 'subjects'), {
+            name: subjectName,
+            isActive: true,
+            createdAt: new Date().toISOString()
+          });
+        }
+      }
+      await loadSubjects(); // Refresh data
+      alert('Default subjects have been added successfully!');
+    } catch (error) {
+      console.error('Error initializing default subjects:', error);
+      alert('Error adding default subjects: ' + error.message);
+    }
+  }
+
   // Logout
   async function logout() {
     try {
@@ -140,6 +167,9 @@
       <button class="add-btn" onclick={() => { editingSubject = null; subjectForm = { name: '', isActive: true }; showForm = true; }}>
         Add Subject
       </button>
+      <button class="init-btn" onclick={initializeDefaultSubjectsManually}>
+        Initialize Default Subjects
+      </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
   </header>
@@ -182,7 +212,7 @@
             {/each}
             {#if subjects.length === 0}
               <tr>
-                <td colspan="5" class="empty-row">No subjects found. Click "Add Subject" to create one.</td>
+                <td colspan="5" class="empty-row">No subjects found. Click "Initialize Default Subjects" to add the standard subjects, or "Add Subject" to create custom ones.</td>
               </tr>
             {/if}
           </tbody>
@@ -260,6 +290,22 @@
   .add-btn:hover {
     background: var(--brand-hover);
     border-color: var(--brand-hover);
+  }
+
+  .init-btn {
+    background: #6c757d;
+    color: white;
+    border: 2px solid #6c757d;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+  }
+
+  .init-btn:hover {
+    background: #5a6268;
+    border-color: #5a6268;
   }
 
   .logout-btn {
