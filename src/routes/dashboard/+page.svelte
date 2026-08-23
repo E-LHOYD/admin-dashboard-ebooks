@@ -293,6 +293,20 @@
           <p>Reading activity, subjects, and student breakdown</p>
           <div class="card-stats">Usage across the library</div>
         </a>
+
+        <a href="/dashboard/subjects" class="management-card">
+          <div class="card-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              <line x1="12" y1="6" x2="12" y2="18"></line>
+              <line x1="8" y1="10" x2="16" y2="10"></line>
+            </svg>
+          </div>
+          <h3>Subjects Management</h3>
+          <p>Manage reading preference options</p>
+          <div class="card-stats">Configure available subjects</div>
+        </a>
       </div>
     </section>
   {/if}
@@ -317,7 +331,7 @@
 
   .management-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
   }
 
