@@ -3,7 +3,6 @@
   import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
-  import { DEFAULT_SUBJECTS } from '$lib/subjects';
 
   // Reactive state variables
   let subjects = $state([]);
@@ -13,8 +12,7 @@
 
   // Subject form data
   let subjectForm = $state({
-    name: '',
-    isActive: true
+    name: ''
   });
 
   // Load subjects data
@@ -35,10 +33,9 @@
     try {
       await addDoc(collection(db, 'subjects'), {
         name: subjectForm.name,
-        isActive: subjectForm.isActive,
         createdAt: new Date().toISOString()
       });
-      subjectForm = { name: '', isActive: true };
+      subjectForm = { name: '' };
       showForm = false;
       await loadSubjects(); // Refresh data
     } catch (error) {
@@ -57,11 +54,10 @@
   async function updateSubject() {
     try {
       await updateDoc(doc(db, 'subjects', editingSubject.id), {
-        name: subjectForm.name,
-        isActive: subjectForm.isActive
+        name: subjectForm.name
       });
       editingSubject = null;
-      subjectForm = { name: '', isActive: true };
+      subjectForm = { name: '' };
       showForm = false;
       await loadSubjects(); // Refresh data
     } catch (error) {
@@ -80,44 +76,6 @@
       await loadSubjects(); // Refresh data
     } catch (error) {
       console.error('Error deleting subject:', error);
-    }
-  }
-
-  // Toggle subject active status
-  async function toggleSubjectStatus(subject) {
-    try {
-      await updateDoc(doc(db, 'subjects', subject.id), {
-        isActive: !subject.isActive
-      });
-      await loadSubjects(); // Refresh data
-    } catch (error) {
-      console.error('Error toggling subject status:', error);
-    }
-  }
-
-  // Initialize default subjects manually
-  async function initializeDefaultSubjectsManually() {
-    if (!confirm('This will add the default subjects (Math, Science, Filipino, etc.) to the subjects list. Continue?')) {
-      return;
-    }
-
-    try {
-      for (const subjectName of DEFAULT_SUBJECTS) {
-        // Check if subject already exists
-        const existingSubject = subjects.find(s => s.name === subjectName);
-        if (!existingSubject) {
-          await addDoc(collection(db, 'subjects'), {
-            name: subjectName,
-            isActive: true,
-            createdAt: new Date().toISOString()
-          });
-        }
-      }
-      await loadSubjects(); // Refresh data
-      alert('Default subjects have been added successfully!');
-    } catch (error) {
-      console.error('Error initializing default subjects:', error);
-      alert('Error adding default subjects: ' + error.message);
     }
   }
 
@@ -164,11 +122,8 @@
       <button class="dashboard-btn" onclick={() => goto('/dashboard')}>
         Return to Dashboard
       </button>
-      <button class="add-btn" onclick={() => { editingSubject = null; subjectForm = { name: '', isActive: true }; showForm = true; }}>
+      <button class="add-btn" onclick={() => { editingSubject = null; subjectForm = { name: '' }; showForm = true; }}>
         Add Subject
-      </button>
-      <button class="init-btn" onclick={initializeDefaultSubjectsManually}>
-        Initialize Default Subjects
       </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
@@ -185,7 +140,6 @@
             <tr>
               <th>#</th>
               <th>Subject Name</th>
-              <th>Status</th>
               <th>Created At</th>
               <th>Actions</th>
             </tr>
@@ -195,24 +149,16 @@
               <tr>
                 <td>{index + 1}</td>
                 <td>{subject.name}</td>
-                <td>
-                  <span class="status-badge" class:active={subject.isActive} class:inactive={!subject.isActive}>
-                    {subject.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
                 <td>{new Date(subject.createdAt).toLocaleDateString()}</td>
                 <td>
                   <button class="table-btn edit-btn" onclick={() => editSubject(subject)}>Edit</button>
-                  <button class="table-btn toggle-btn" onclick={() => toggleSubjectStatus(subject)}>
-                    {subject.isActive ? 'Deactivate' : 'Activate'}
-                  </button>
                   <button class="table-btn delete-btn" onclick={() => deleteSubject(subject.id)}>Delete</button>
                 </td>
               </tr>
             {/each}
             {#if subjects.length === 0}
               <tr>
-                <td colspan="5" class="empty-row">No subjects found. Click "Initialize Default Subjects" to add the standard subjects, or "Add Subject" to create custom ones.</td>
+                <td colspan="4" class="empty-row">No subjects found. Click "Add Subject" to create custom ones.</td>
               </tr>
             {/if}
           </tbody>
@@ -239,13 +185,6 @@
               bind:value={subjectForm.name} 
               required
             />
-          </div>
-          <div class="form-group">
-            <label for="subjectStatus">Status</label>
-            <select id="subjectStatus" bind:value={subjectForm.isActive}>
-              <option value={true}>Active</option>
-              <option value={false}>Inactive</option>
-            </select>
           </div>
           <div class="modal-actions">
             <button type="button" class="cancel-btn" onclick={() => { showForm = false; editingSubject = null; }}>Cancel</button>
@@ -290,22 +229,6 @@
   .add-btn:hover {
     background: var(--brand-hover);
     border-color: var(--brand-hover);
-  }
-
-  .init-btn {
-    background: #6c757d;
-    color: white;
-    border: 2px solid #6c757d;
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-  }
-
-  .init-btn:hover {
-    background: #5a6268;
-    border-color: #5a6268;
   }
 
   .logout-btn {
@@ -410,23 +333,6 @@
     font-style: italic;
   }
 
-  .status-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .status-badge.active {
-    background: #28a745;
-    color: white;
-  }
-
-  .status-badge.inactive {
-    background: #6c757d;
-    color: white;
-  }
-
   .table-btn {
     padding: 6px 12px;
     border: none;
@@ -444,15 +350,6 @@
 
   .edit-btn:hover {
     background: #0056b3;
-  }
-
-  .toggle-btn {
-    background: #ffc107;
-    color: #212529;
-  }
-
-  .toggle-btn:hover {
-    background: #e0a800;
   }
 
   .delete-btn {
