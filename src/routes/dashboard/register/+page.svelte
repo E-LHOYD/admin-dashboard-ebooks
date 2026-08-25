@@ -164,6 +164,9 @@
 
       success = 'User registered successfully!';
       
+      // Sign out the newly created user to prevent automatic login/redirect
+      await signOut(auth);
+      
       // Reset form
       formData = {
         firstName: '',
@@ -187,10 +190,10 @@
         activityStatus: 'Active'
       };
 
-      // Redirect after 2 seconds
+      // Clear success message after 3 seconds
       setTimeout(() => {
-        goto('/dashboard');
-      }, 2000);
+        success = '';
+      }, 3000);
 
     } catch (err) {
       console.error('Registration error:', err);
