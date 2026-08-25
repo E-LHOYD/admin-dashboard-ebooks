@@ -299,9 +299,39 @@
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-              <line x1="12" y1="6" x2="12" y2="18"></line>
-              <line x1="8" y1="10" x2="16" y2="10"></line>
             </svg>
+          </div>
+          <h3>Subjects</h3>
+          <p>Manage book subjects</p>
+          <div class="card-stats">Customize library categories</div>
+        </a>
+
+        <a href="/dashboard/programs" class="management-card">
+          <div class="card-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 10v6M2 10v6"></path>
+              <path d="M20 20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12z"></path>
+              <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2"></path>
+              <path d="M12 4v2"></path>
+            </svg>
+          </div>
+          <h3>Student Programs</h3>
+          <p>Map student programs to subjects</p>
+          <div class="card-stats">Configure recommendations</div>
+        </a>
+
+        <a href="/dashboard/departments" class="management-card">
+          <div class="card-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21h18"></path>
+              <path d="M5 21V7l8-4 8 4v14"></path>
+              <path d="M13 10a2 2 0 1 1-4 0"></path>
+            </svg>
+          </div>
+          <h3>Teacher Departments</h3>
+          <p>Map teacher departments to subjects</p>
+          <div class="card-stats">Configure recommendations</div>
+        </a>
           </div>
           <h3>Subjects Management</h3>
           <p>Manage reading preference options</p>

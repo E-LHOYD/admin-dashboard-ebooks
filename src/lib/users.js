@@ -16,7 +16,7 @@
 // What a teacher is attached to. Teachers have no year, course or student
 // number, so this and an employee number are all that stands in for the
 // academic credentials a student carries.
-export const DEPARTMENTS = ['Senior High', 'College', 'Both'];
+export const DEPARTMENTS = ['Filipino', 'Social Science', 'ICT', 'Animation', 'P.E.', 'ABM', 'English', 'STEM', 'Science', 'Math', 'Business'];
 
 /**
  * The user's role, lowercased and trimmed.
