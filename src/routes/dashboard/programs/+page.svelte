@@ -26,11 +26,9 @@
       const programsSnapshot = await getDocs(programsQuery);
       programs = programsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // Seed default programs if none exist
-      if (programs.length === 0) {
-        await seedDefaultPrograms();
-        await loadPrograms(); // Reload after seeding
-      }
+      // Always seed default programs if they don't already exist
+      await seedDefaultPrograms();
+      await loadPrograms(); // Reload after seeding
       
       loading = false;
     } catch (error) {
@@ -65,13 +63,19 @@
       { name: 'BSEE', type: 'college', subjects: ['Math', 'Science', 'Computer', 'English'] }
     ];
 
+    // Get existing programs to avoid duplicates
+    const existingSnapshot = await getDocs(query(collection(db, 'programMappings')));
+    const existingNames = new Set(existingSnapshot.docs.map(doc => doc.data().name.trim().toUpperCase()));
+
     for (const program of defaultPrograms) {
-      await addDoc(collection(db, 'programMappings'), {
-        name: program.name,
-        type: program.type,
-        subjects: program.subjects,
-        createdAt: new Date().toISOString()
-      });
+      if (!existingNames.has(program.name.trim().toUpperCase())) {
+        await addDoc(collection(db, 'programMappings'), {
+          name: program.name,
+          type: program.type,
+          subjects: program.subjects,
+          createdAt: new Date().toISOString()
+        });
+      }
     }
   }
 
