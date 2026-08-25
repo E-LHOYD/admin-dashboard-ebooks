@@ -49,11 +49,20 @@
       { name: 'GAS', type: 'shs', subjects: ['English', 'Filipino', 'Math', 'Science', 'Literature'] },
       { name: 'TVL', type: 'shs', subjects: ['Computer', 'Business', 'Health'] },
       { name: 'ARTS & DESIGN', type: 'shs', subjects: ['Arts', 'Music', 'Literature'] },
+      { name: 'SPORTS', type: 'shs', subjects: ['Physical Education', 'Health', 'English'] },
       // College courses
       { name: 'BSCS', type: 'college', subjects: ['Computer', 'Math', 'English'] },
       { name: 'BSIT', type: 'college', subjects: ['Computer', 'Math', 'English'] },
       { name: 'BSIS', type: 'college', subjects: ['Computer', 'Business', 'Math'] },
-      { name: 'BSBA', type: 'college', subjects: ['Business', 'Math', 'English'] }
+      { name: 'BSBA', type: 'college', subjects: ['Business', 'Math', 'English'] },
+      { name: 'BSA', type: 'college', subjects: ['Business', 'Math', 'English'] },
+      { name: 'BSE', type: 'college', subjects: ['English', 'Math', 'Filipino'] },
+      { name: 'BSN', type: 'college', subjects: ['Science', 'Math', 'English'] },
+      { name: 'BSHM', type: 'college', subjects: ['Business', 'English', 'Math'] },
+      { name: 'BSTM', type: 'college', subjects: ['Business', 'English', 'Math'] },
+      { name: 'BSECE', type: 'college', subjects: ['Math', 'Science', 'Computer', 'English'] },
+      { name: 'BSME', type: 'college', subjects: ['Math', 'Science', 'Computer', 'English'] },
+      { name: 'BSEE', type: 'college', subjects: ['Math', 'Science', 'Computer', 'English'] }
     ];
 
     for (const program of defaultPrograms) {
