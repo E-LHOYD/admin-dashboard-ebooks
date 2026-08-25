@@ -15,6 +15,7 @@
   // Program form data
   let programForm = $state({
     name: '',
+    type: 'shs', // 'shs' or 'college'
     subjects: []
   });
 
@@ -42,22 +43,23 @@
   async function seedDefaultPrograms() {
     const defaultPrograms = [
       // Senior high strands
-      { name: 'STEM', subjects: ['Math', 'Science', 'Computer', 'English'] },
-      { name: 'ABM', subjects: ['Business', 'Math', 'English'] },
-      { name: 'HUMSS', subjects: ['Literature', 'English', 'Filipino', 'Arts'] },
-      { name: 'GAS', subjects: ['English', 'Filipino', 'Math', 'Science', 'Literature'] },
-      { name: 'TVL', subjects: ['Computer', 'Business', 'Health'] },
-      { name: 'ARTS & DESIGN', subjects: ['Arts', 'Music', 'Literature'] },
+      { name: 'STEM', type: 'shs', subjects: ['Math', 'Science', 'Computer', 'English'] },
+      { name: 'ABM', type: 'shs', subjects: ['Business', 'Math', 'English'] },
+      { name: 'HUMSS', type: 'shs', subjects: ['Literature', 'English', 'Filipino', 'Arts'] },
+      { name: 'GAS', type: 'shs', subjects: ['English', 'Filipino', 'Math', 'Science', 'Literature'] },
+      { name: 'TVL', type: 'shs', subjects: ['Computer', 'Business', 'Health'] },
+      { name: 'ARTS & DESIGN', type: 'shs', subjects: ['Arts', 'Music', 'Literature'] },
       // College courses
-      { name: 'BSCS', subjects: ['Computer', 'Math', 'English'] },
-      { name: 'BSIT', subjects: ['Computer', 'Math', 'English'] },
-      { name: 'BSIS', subjects: ['Computer', 'Business', 'Math'] },
-      { name: 'BSBA', subjects: ['Business', 'Math', 'English'] }
+      { name: 'BSCS', type: 'college', subjects: ['Computer', 'Math', 'English'] },
+      { name: 'BSIT', type: 'college', subjects: ['Computer', 'Math', 'English'] },
+      { name: 'BSIS', type: 'college', subjects: ['Computer', 'Business', 'Math'] },
+      { name: 'BSBA', type: 'college', subjects: ['Business', 'Math', 'English'] }
     ];
 
     for (const program of defaultPrograms) {
       await addDoc(collection(db, 'programMappings'), {
         name: program.name,
+        type: program.type,
         subjects: program.subjects,
         createdAt: new Date().toISOString()
       });
@@ -86,10 +88,11 @@
     try {
       await addDoc(collection(db, 'programMappings'), {
         name: programForm.name,
+        type: programForm.type,
         subjects: programForm.subjects,
         createdAt: new Date().toISOString()
       });
-      programForm = { name: '', subjects: [] };
+      programForm = { name: '', type: 'shs', subjects: [] };
       showForm = false;
       await loadPrograms(); // Refresh data
     } catch (error) {
@@ -109,10 +112,11 @@
     try {
       await updateDoc(doc(db, 'programMappings', editingProgram.id), {
         name: programForm.name,
+        type: programForm.type,
         subjects: programForm.subjects
       });
       editingProgram = null;
-      programForm = { name: '', subjects: [] };
+      programForm = { name: '', type: 'shs', subjects: [] };
       showForm = false;
       await loadPrograms(); // Refresh data
     } catch (error) {
@@ -187,7 +191,7 @@
       <button class="dashboard-btn" onclick={() => goto('/dashboard')}>
         Return to Dashboard
       </button>
-      <button class="add-btn" onclick={() => { editingProgram = null; programForm = { name: '', subjects: [] }; showForm = true; }}>
+      <button class="add-btn" onclick={() => { editingProgram = null; programForm = { name: '', type: 'shs', subjects: [] }; showForm = true; }}>
         Add Program
       </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
@@ -197,8 +201,9 @@
   {#if loading}
     <div class="loading">Loading programs...</div>
   {:else}
-    <!-- Programs Table -->
+    <!-- Senior High Programs -->
     <section class="table-section">
+      <h2 class="section-title">Senior High Strands</h2>
       <div class="table-container">
         <table class="data-table">
           <thead>
@@ -211,7 +216,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each programs as program, index}
+            {#each programs.filter(p => p.type === 'shs') as program, index}
               <tr>
                 <td>{index + 1}</td>
                 <td>{program.name}</td>
@@ -223,9 +228,46 @@
                 </td>
               </tr>
             {/each}
-            {#if programs.length === 0}
+            {#if programs.filter(p => p.type === 'shs').length === 0}
               <tr>
-                <td colspan="5" class="empty-row">No program mappings found. Click "Add Program" to create custom mappings for student strands and courses.</td>
+                <td colspan="5" class="empty-row">No SHS programs found. Click "Add Program" to create mappings for senior high strands.</td>
+              </tr>
+            {/if}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- College Programs -->
+    <section class="table-section">
+      <h2 class="section-title">College Courses</h2>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Program Name</th>
+              <th>Matched Subjects</th>
+              <th>Created At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each programs.filter(p => p.type === 'college') as program, index}
+              <tr>
+                <td>{index + 1}</td>
+                <td>{program.name}</td>
+                <td>{program.subjects ? program.subjects.join(', ') : 'None'}</td>
+                <td>{new Date(program.createdAt).toLocaleDateString()}</td>
+                <td>
+                  <button class="table-btn edit-btn" onclick={() => editProgram(program)}>Edit</button>
+                  <button class="table-btn delete-btn" onclick={() => deleteProgram(program.id)}>Delete</button>
+                </td>
+              </tr>
+            {/each}
+            {#if programs.filter(p => p.type === 'college').length === 0}
+              <tr>
+                <td colspan="5" class="empty-row">No college programs found. Click "Add Program" to create mappings for college courses.</td>
               </tr>
             {/if}
           </tbody>
@@ -252,6 +294,13 @@
               bind:value={programForm.name} 
               required
             />
+          </div>
+          <div class="form-group">
+            <label for="programType">Program Type *</label>
+            <select id="programType" bind:value={programForm.type} required>
+              <option value="shs">Senior High Strand</option>
+              <option value="college">College Course</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Matched Subjects *</label>
@@ -380,6 +429,14 @@
     border-radius: var(--radius);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     overflow: hidden;
+    margin-bottom: 30px;
+  }
+
+  .section-title {
+    margin: 0 0 15px 0;
+    color: var(--brand);
+    font-size: 1.5rem;
+    padding: 20px 20px 0 20px;
   }
 
   .table-container {
