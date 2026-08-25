@@ -26,9 +26,10 @@
       const programsSnapshot = await getDocs(programsQuery);
       programs = programsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // Seed default programs if collection is empty
-      if (programs.length === 0) {
+      // Always reseed with correct programs on first load
+      if (programs.length === 0 || programs.some(p => !p.type)) {
         await seedDefaultPrograms();
+        await loadPrograms(); // Reload after seeding
       }
       
       loading = false;
@@ -40,6 +41,12 @@
 
   // Seed default program mappings from existing TRACK_SUBJECTS
   async function seedDefaultPrograms() {
+    // Delete all existing programs first
+    const snapshot = await getDocs(collection(db, 'programMappings'));
+    for (const doc of snapshot.docs) {
+      await deleteDoc(doc.ref);
+    }
+
     const defaultPrograms = [
       // Senior high strands
       { name: 'STEM', type: 'shs', subjects: ['Math', 'Science', 'Computer', 'English'] },
