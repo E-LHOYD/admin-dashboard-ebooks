@@ -203,7 +203,7 @@
       password: '', // Don't pre-fill password when editing
       role: user.role || 'student',
       activityStatus: user.activityStatus || 'Active',
-      type: user.type || 'college',
+      type: user.type || user.studentType === 'senior-high' ? 'shs' : 'college',
       course: user.course || '',
       year: user.year || '',
       studentNumber: user.studentNumber || '',
@@ -214,6 +214,8 @@
       department: user.department || '',
       interests: user.interests || []
     };
+    console.log('Editing user:', user);
+    console.log('Form data:', studentForm);
     showForm = true;
   }
 
@@ -492,28 +494,52 @@
           <div class="form-section">
             <h4>Personal Information</h4>
             <div class="form-grid">
-              <input type="text" placeholder="First Name" bind:value={studentForm.firstName} required>
-              <input type="text" placeholder="Middle Name" bind:value={studentForm.middleName}>
-              <input type="text" placeholder="Surname" bind:value={studentForm.surname} required>
-              <input type="email" placeholder="Email" bind:value={studentForm.email} required>
-              <input type="text" placeholder="Username" bind:value={studentForm.username} required>
-              <input type="password" placeholder="Password (leave blank to keep current when editing)" bind:value={studentForm.password} required={!editingUser}>
+              <div>
+                <label>First Name *</label>
+                <input type="text" placeholder="First Name" bind:value={studentForm.firstName} required>
+              </div>
+              <div>
+                <label>Middle Name</label>
+                <input type="text" placeholder="Middle Name" bind:value={studentForm.middleName}>
+              </div>
+              <div>
+                <label>Surname *</label>
+                <input type="text" placeholder="Surname" bind:value={studentForm.surname} required>
+              </div>
+              <div>
+                <label>Email *</label>
+                <input type="email" placeholder="Email" bind:value={studentForm.email} required>
+              </div>
+              <div>
+                <label>Username *</label>
+                <input type="text" placeholder="Username" bind:value={studentForm.username} required>
+              </div>
+              <div>
+                <label>Password {!editingUser ? '*' : '(leave blank to keep current)'}</label>
+                <input type="password" placeholder="Password" bind:value={studentForm.password} required={!editingUser}>
+              </div>
             </div>
           </div>
 
           <div class="form-section">
             <h4>Role</h4>
             <div class="form-grid">
-              <select bind:value={studentForm.role} required>
-                <option value="student">Student</option>
-                <option value="teacher">Teacher</option>
-              </select>
-              {#if studentForm.role === 'student' || studentForm.role === 'teacher'}
-                <select bind:value={studentForm.activityStatus} required>
-                  <option value="Active">Active</option>
-                  <option value="Graduated">Graduated</option>
-                  <option value="Inactive">Inactive</option>
+              <div>
+                <label>Role *</label>
+                <select bind:value={studentForm.role} required>
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
                 </select>
+              </div>
+              {#if studentForm.role === 'student' || studentForm.role === 'teacher'}
+                <div>
+                  <label>Activity Status *</label>
+                  <select bind:value={studentForm.activityStatus} required>
+                    <option value="Active">Active</option>
+                    <option value="Graduated">Graduated</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
               {/if}
             </div>
           </div>
@@ -522,10 +548,13 @@
             <div class="form-section">
               <h4>Student Type</h4>
               <div class="form-grid">
-                <select bind:value={studentForm.type} required>
-                  <option value="college">College</option>
-                  <option value="shs">Senior High</option>
-                </select>
+                <div>
+                  <label>Type *</label>
+                  <select bind:value={studentForm.type} required>
+                    <option value="college">College</option>
+                    <option value="shs">Senior High</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -533,44 +562,62 @@
               <div class="form-section">
                 <h4>College Information</h4>
                 <div class="form-grid">
-                  <input type="text" placeholder="Student Number" bind:value={studentForm.studentNumber}>
-                  <select bind:value={studentForm.course}>
-                    <option value="">Select Course</option>
-                    <option value="BSCS">BSCS</option>
-                    <option value="BSIT">BSIT</option>
-                    <option value="BSBA">BSBA</option>
-                    <option value="BSIS">BSIS</option>
-                  </select>
-                  <select bind:value={studentForm.year}>
-                    <option value="">Select Year</option>
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
-                    <option value="5th Year">5th Year</option>
-                  </select>
+                  <div>
+                    <label>Student Number</label>
+                    <input type="text" placeholder="Student Number" bind:value={studentForm.studentNumber}>
+                  </div>
+                  <div>
+                    <label>Course</label>
+                    <select bind:value={studentForm.course}>
+                      <option value="">Select Course</option>
+                      <option value="BSCS">BSCS</option>
+                      <option value="BSIT">BSIT</option>
+                      <option value="BSBA">BSBA</option>
+                      <option value="BSIS">BSIS</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Year</label>
+                    <select bind:value={studentForm.year}>
+                      <option value="">Select Year</option>
+                      <option value="1st Year">1st Year</option>
+                      <option value="2nd Year">2nd Year</option>
+                      <option value="3rd Year">3rd Year</option>
+                      <option value="4th Year">4th Year</option>
+                      <option value="5th Year">5th Year</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             {:else}
               <div class="form-section">
                 <h4>Senior High Information</h4>
                 <div class="form-grid">
-                  <input type="text" placeholder="Learner's Reference Number (LRN)" bind:value={studentForm.lrn}>
-                  <select bind:value={studentForm.strand}>
-                    <option value="">Select Strand</option>
-                    <option value="STEM">STEM</option>
-                    <option value="ABM">ABM</option>
-                    <option value="HUMSS">HUMSS</option>
-                    <option value="GAS">GAS</option>
-                    <option value="TVL">TVL</option>
-                    <option value="ICT - ANIMATION">ICT - ANIMATION</option>
-                    <option value="ICT">ICT</option>
-                  </select>
-                  <select bind:value={studentForm.grade}>
-                    <option value="">Select Grade</option>
-                    <option value="Grade 11">Grade 11</option>
-                    <option value="Grade 12">Grade 12</option>
-                  </select>
+                  <div>
+                    <label>Learner's Reference Number (LRN)</label>
+                    <input type="text" placeholder="LRN" bind:value={studentForm.lrn}>
+                  </div>
+                  <div>
+                    <label>Strand</label>
+                    <select bind:value={studentForm.strand}>
+                      <option value="">Select Strand</option>
+                      <option value="STEM">STEM</option>
+                      <option value="ABM">ABM</option>
+                      <option value="HUMSS">HUMSS</option>
+                      <option value="GAS">GAS</option>
+                      <option value="TVL">TVL</option>
+                      <option value="ICT - ANIMATION">ICT - ANIMATION</option>
+                      <option value="ICT">ICT</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Grade</label>
+                    <select bind:value={studentForm.grade}>
+                      <option value="">Select Grade</option>
+                      <option value="Grade 11">Grade 11</option>
+                      <option value="Grade 12">Grade 12</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             {/if}
@@ -580,21 +627,27 @@
             <div class="form-section">
               <h4>Teacher Information</h4>
               <div class="form-grid">
-                <input type="text" placeholder="Employee Number" bind:value={studentForm.employeeNumber}>
-                <select bind:value={studentForm.department}>
-                  <option value="">Select Department</option>
-                  <option value="Filipino">Filipino</option>
-                  <option value="Social Science">Social Science</option>
-                  <option value="ICT">ICT</option>
-                  <option value="Animation">Animation</option>
-                  <option value="P.E.">P.E.</option>
-                  <option value="ABM">ABM</option>
-                  <option value="English">English</option>
-                  <option value="STEM">STEM</option>
-                  <option value="Science">Science</option>
-                  <option value="Math">Math</option>
-                  <option value="Business">Business</option>
-                </select>
+                <div>
+                  <label>Employee Number</label>
+                  <input type="text" placeholder="Employee Number" bind:value={studentForm.employeeNumber}>
+                </div>
+                <div>
+                  <label>Department</label>
+                  <select bind:value={studentForm.department}>
+                    <option value="">Select Department</option>
+                    <option value="Filipino">Filipino</option>
+                    <option value="Social Science">Social Science</option>
+                    <option value="ICT">ICT</option>
+                    <option value="Animation">Animation</option>
+                    <option value="P.E.">P.E.</option>
+                    <option value="ABM">ABM</option>
+                    <option value="English">English</option>
+                    <option value="STEM">STEM</option>
+                    <option value="Science">Science</option>
+                    <option value="Math">Math</option>
+                    <option value="Business">Business</option>
+                  </select>
+                </div>
               </div>
             </div>
           {/if}
@@ -659,6 +712,30 @@
     color: var(--brand);
     font-size: 1rem;
     font-weight: 600;
+  }
+
+  .form-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #343a40;
+  }
+
+  .form-section input,
+  .form-section select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.875rem;
+  }
+
+  .form-section input:focus,
+  .form-section select:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(3, 48, 71, 0.1);
   }
 
   .data-table code {
