@@ -1,7 +1,7 @@
 <script>
   import { auth, db } from '$lib/firebase';
   import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
-  import { signOut } from 'firebase/auth';
+  import { signOut, deleteUser as deleteAuthUser } from 'firebase/auth';
   import { goto } from '$app/navigation';
   import {
     hasRole,
@@ -290,7 +290,7 @@
 
   // Delete user
   async function deleteUser(userId) {
-    if (confirm('Are you sure you want to delete this user?')) {
+    if (confirm('Are you sure you want to delete this user? Note: To allow the email to be reused, you must also delete the user from Firebase Authentication Console.')) {
       try {
         await deleteDoc(doc(db, 'users', userId));
         await loadUsers(); // Refresh data
