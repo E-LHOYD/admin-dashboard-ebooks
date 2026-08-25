@@ -45,7 +45,17 @@
     username: '',
     password: '',
     role: 'student',
-    activityStatus: 'Active'
+    activityStatus: 'Active',
+    type: 'college',
+    course: '',
+    year: '',
+    studentNumber: '',
+    strand: '',
+    grade: '',
+    lrn: '',
+    employeeNumber: '',
+    department: '',
+    interests: []
   });
 
   // Load users data
@@ -162,7 +172,17 @@
         username: '',
         password: '',
         role: 'student',
-        activityStatus: 'Active'
+        activityStatus: 'Active',
+        type: 'college',
+        course: '',
+        year: '',
+        studentNumber: '',
+        strand: '',
+        grade: '',
+        lrn: '',
+        employeeNumber: '',
+        department: '',
+        interests: []
       };
       showForm = false;
       await loadUsers(); // Refresh data
@@ -174,14 +194,39 @@
   // Edit user
   function editUser(user) {
     editingUser = user;
-    studentForm = { ...user };
+    studentForm = {
+      firstName: user.firstName || '',
+      middleName: user.middleName || '',
+      surname: user.surname || '',
+      email: user.email || '',
+      username: user.username || '',
+      password: '', // Don't pre-fill password when editing
+      role: user.role || 'student',
+      activityStatus: user.activityStatus || 'Active',
+      type: user.type || 'college',
+      course: user.course || '',
+      year: user.year || '',
+      studentNumber: user.studentNumber || '',
+      strand: user.strand || '',
+      grade: user.grade || '',
+      lrn: user.lrn || '',
+      employeeNumber: user.employeeNumber || '',
+      department: user.department || '',
+      interests: user.interests || []
+    };
     showForm = true;
   }
 
   // Update user
   async function updateUser() {
     try {
-      await updateDoc(doc(db, 'users', editingUser.id), studentForm);
+      // Don't update password if it's empty (editing without changing password)
+      const updateData = { ...studentForm };
+      if (!updateData.password) {
+        delete updateData.password;
+      }
+      
+      await updateDoc(doc(db, 'users', editingUser.id), updateData);
       editingUser = null;
       studentForm = {
         firstName: '',
@@ -191,7 +236,17 @@
         username: '',
         password: '',
         role: 'student',
-        activityStatus: 'Active'
+        activityStatus: 'Active',
+        type: 'college',
+        course: '',
+        year: '',
+        studentNumber: '',
+        strand: '',
+        grade: '',
+        lrn: '',
+        employeeNumber: '',
+        department: '',
+        interests: []
       };
       showForm = false;
       await loadUsers(); // Refresh data
@@ -434,21 +489,116 @@
           <button type="button" class="close-btn" onclick={() => showForm = false} aria-label="Close modal">&times;</button>
         </div>
         <form onsubmit={(e) => { e.preventDefault(); editingUser ? updateUser() : addStudent(); }}>
-          <div class="form-grid">
-            <input type="text" placeholder="First Name" bind:value={studentForm.firstName} required>
-            <input type="text" placeholder="Middle Name" bind:value={studentForm.middleName}>
-            <input type="text" placeholder="Surname" bind:value={studentForm.surname} required>
-            <input type="email" placeholder="Email" bind:value={studentForm.email} required>
-            <input type="text" placeholder="Username" bind:value={studentForm.username} required>
-            <input type="password" placeholder="Password" bind:value={studentForm.password} required>
-            {#if studentForm.role === 'student' || studentForm.role === 'teacher'}
-              <select bind:value={studentForm.activityStatus} required>
-                <option value="Active">Active</option>
-                <option value="Graduated">Graduated</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            {/if}
+          <div class="form-section">
+            <h4>Personal Information</h4>
+            <div class="form-grid">
+              <input type="text" placeholder="First Name" bind:value={studentForm.firstName} required>
+              <input type="text" placeholder="Middle Name" bind:value={studentForm.middleName}>
+              <input type="text" placeholder="Surname" bind:value={studentForm.surname} required>
+              <input type="email" placeholder="Email" bind:value={studentForm.email} required>
+              <input type="text" placeholder="Username" bind:value={studentForm.username} required>
+              <input type="password" placeholder="Password (leave blank to keep current when editing)" bind:value={studentForm.password} required={!editingUser}>
+            </div>
           </div>
+
+          <div class="form-section">
+            <h4>Role</h4>
+            <div class="form-grid">
+              <select bind:value={studentForm.role} required>
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+              </select>
+              {#if studentForm.role === 'student' || studentForm.role === 'teacher'}
+                <select bind:value={studentForm.activityStatus} required>
+                  <option value="Active">Active</option>
+                  <option value="Graduated">Graduated</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              {/if}
+            </div>
+          </div>
+
+          {#if studentForm.role === 'student'}
+            <div class="form-section">
+              <h4>Student Type</h4>
+              <div class="form-grid">
+                <select bind:value={studentForm.type} required>
+                  <option value="college">College</option>
+                  <option value="shs">Senior High</option>
+                </select>
+              </div>
+            </div>
+
+            {#if studentForm.type === 'college'}
+              <div class="form-section">
+                <h4>College Information</h4>
+                <div class="form-grid">
+                  <input type="text" placeholder="Student Number" bind:value={studentForm.studentNumber}>
+                  <select bind:value={studentForm.course}>
+                    <option value="">Select Course</option>
+                    <option value="BSCS">BSCS</option>
+                    <option value="BSIT">BSIT</option>
+                    <option value="BSBA">BSBA</option>
+                    <option value="BSIS">BSIS</option>
+                  </select>
+                  <select bind:value={studentForm.year}>
+                    <option value="">Select Year</option>
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                    <option value="5th Year">5th Year</option>
+                  </select>
+                </div>
+              </div>
+            {:else}
+              <div class="form-section">
+                <h4>Senior High Information</h4>
+                <div class="form-grid">
+                  <input type="text" placeholder="Learner's Reference Number (LRN)" bind:value={studentForm.lrn}>
+                  <select bind:value={studentForm.strand}>
+                    <option value="">Select Strand</option>
+                    <option value="STEM">STEM</option>
+                    <option value="ABM">ABM</option>
+                    <option value="HUMSS">HUMSS</option>
+                    <option value="GAS">GAS</option>
+                    <option value="TVL">TVL</option>
+                    <option value="ICT - ANIMATION">ICT - ANIMATION</option>
+                    <option value="ICT">ICT</option>
+                  </select>
+                  <select bind:value={studentForm.grade}>
+                    <option value="">Select Grade</option>
+                    <option value="Grade 11">Grade 11</option>
+                    <option value="Grade 12">Grade 12</option>
+                  </select>
+                </div>
+              </div>
+            {/if}
+          {/if}
+
+          {#if studentForm.role === 'teacher'}
+            <div class="form-section">
+              <h4>Teacher Information</h4>
+              <div class="form-grid">
+                <input type="text" placeholder="Employee Number" bind:value={studentForm.employeeNumber}>
+                <select bind:value={studentForm.department}>
+                  <option value="">Select Department</option>
+                  <option value="Filipino">Filipino</option>
+                  <option value="Social Science">Social Science</option>
+                  <option value="ICT">ICT</option>
+                  <option value="Animation">Animation</option>
+                  <option value="P.E.">P.E.</option>
+                  <option value="ABM">ABM</option>
+                  <option value="English">English</option>
+                  <option value="STEM">STEM</option>
+                  <option value="Science">Science</option>
+                  <option value="Math">Math</option>
+                  <option value="Business">Business</option>
+                </select>
+              </div>
+            </div>
+          {/if}
+
           <div class="modal-actions">
             <button type="button" class="cancel-btn" onclick={() => showForm = false}>Cancel</button>
             <button type="submit" class="submit-btn">{editingUser ? 'Update User' : 'Add User'}</button>
@@ -492,6 +642,23 @@
   .add-btn:hover {
     background: var(--brand-hover);
     border-color: var(--brand-hover);
+  }
+
+  .form-section {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .form-section:last-child {
+    border-bottom: none;
+  }
+
+  .form-section h4 {
+    margin: 0 0 15px 0;
+    color: var(--brand);
+    font-size: 1rem;
+    font-weight: 600;
   }
 
   .data-table code {
