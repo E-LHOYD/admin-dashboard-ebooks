@@ -332,11 +332,6 @@
           <p>Map teacher departments to subjects</p>
           <div class="card-stats">Configure recommendations</div>
         </a>
-          </div>
-          <h3>Subjects Management</h3>
-          <p>Manage reading preference options</p>
-          <div class="card-stats">Configure available subjects</div>
-        </a>
       </div>
     </section>
   {/if}
