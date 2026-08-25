@@ -145,27 +145,6 @@
     }
   }
 
-  // Reset and reseed all programs
-  async function resetPrograms() {
-    if (!confirm('This will delete all existing programs and reseed with the default list. Are you sure?')) {
-      return;
-    }
-
-    try {
-      // Delete all existing programs
-      const snapshot = await getDocs(collection(db, 'programMappings'));
-      for (const doc of snapshot.docs) {
-        await deleteDoc(doc.ref);
-      }
-      
-      // Reseed with default programs
-      await seedDefaultPrograms();
-      await loadPrograms();
-    } catch (error) {
-      console.error('Error resetting programs:', error);
-    }
-  }
-
   // Toggle subject selection
   function toggleSubject(subject) {
     if (programForm.subjects.includes(subject)) {
@@ -219,7 +198,6 @@
       <button class="dashboard-btn" onclick={() => goto('/dashboard')}>
         Return to Dashboard
       </button>
-      <button class="reset-btn" onclick={resetPrograms}>Reset to Defaults</button>
       <button class="add-btn" onclick={() => { editingProgram = null; programForm = { name: '', type: 'shs', subjects: [] }; showForm = true; }}>
         Add Program
       </button>
@@ -389,21 +367,6 @@
   .add-btn:hover {
     background: var(--brand-hover);
     border-color: var(--brand-hover);
-  }
-
-  .reset-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-  }
-
-  .reset-btn:hover {
-    background: #5a6268;
   }
 
   .logout-btn {
