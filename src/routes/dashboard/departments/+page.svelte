@@ -25,10 +25,42 @@
       const mappingsQuery = query(collection(db, 'departmentMappings'), orderBy('department'));
       const mappingsSnapshot = await getDocs(mappingsQuery);
       departmentMappings = mappingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Seed default department mappings if none exist
+      if (departmentMappings.length === 0) {
+        await seedDefaultDepartmentMappings();
+        await loadDepartmentMappings(); // Reload after seeding
+      }
+      
       loading = false;
     } catch (error) {
       console.error('Error loading department mappings:', error);
       loading = false;
+    }
+  }
+
+  // Seed default department mappings
+  async function seedDefaultDepartmentMappings() {
+    const defaultMappings = [
+      { department: 'Filipino', subjects: ['Filipino', 'Literature'] },
+      { department: 'Social Science', subjects: ['Literature', 'English', 'Filipino', 'Arts'] },
+      { department: 'ICT', subjects: ['Computer', 'Math', 'English'] },
+      { department: 'Animation', subjects: ['Arts', 'Computer', 'Music'] },
+      { department: 'P.E.', subjects: ['Physical Education', 'Health'] },
+      { department: 'ABM', subjects: ['Business', 'Math', 'English'] },
+      { department: 'English', subjects: ['English', 'Literature'] },
+      { department: 'STEM', subjects: ['Math', 'Science', 'Computer', 'English'] },
+      { department: 'Science', subjects: ['Science', 'Math'] },
+      { department: 'Math', subjects: ['Math', 'Computer'] },
+      { department: 'Business', subjects: ['Business', 'Math', 'English'] }
+    ];
+
+    for (const mapping of defaultMappings) {
+      await addDoc(collection(db, 'departmentMappings'), {
+        department: mapping.department,
+        subjects: mapping.subjects,
+        createdAt: new Date().toISOString()
+      });
     }
   }
 

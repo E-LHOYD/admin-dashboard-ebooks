@@ -24,10 +24,43 @@
       const programsQuery = query(collection(db, 'programMappings'), orderBy('name'));
       const programsSnapshot = await getDocs(programsQuery);
       programs = programsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Seed default programs if none exist
+      if (programs.length === 0) {
+        await seedDefaultPrograms();
+        await loadPrograms(); // Reload after seeding
+      }
+      
       loading = false;
     } catch (error) {
       console.error('Error loading programs:', error);
       loading = false;
+    }
+  }
+
+  // Seed default program mappings from existing TRACK_SUBJECTS
+  async function seedDefaultPrograms() {
+    const defaultPrograms = [
+      // Senior high strands
+      { name: 'STEM', subjects: ['Math', 'Science', 'Computer', 'English'] },
+      { name: 'ABM', subjects: ['Business', 'Math', 'English'] },
+      { name: 'HUMSS', subjects: ['Literature', 'English', 'Filipino', 'Arts'] },
+      { name: 'GAS', subjects: ['English', 'Filipino', 'Math', 'Science', 'Literature'] },
+      { name: 'TVL', subjects: ['Computer', 'Business', 'Health'] },
+      { name: 'ARTS & DESIGN', subjects: ['Arts', 'Music', 'Literature'] },
+      // College courses
+      { name: 'BSCS', subjects: ['Computer', 'Math', 'English'] },
+      { name: 'BSIT', subjects: ['Computer', 'Math', 'English'] },
+      { name: 'BSIS', subjects: ['Computer', 'Business', 'Math'] },
+      { name: 'BSBA', subjects: ['Business', 'Math', 'English'] }
+    ];
+
+    for (const program of defaultPrograms) {
+      await addDoc(collection(db, 'programMappings'), {
+        name: program.name,
+        subjects: program.subjects,
+        createdAt: new Date().toISOString()
+      });
     }
   }
 
