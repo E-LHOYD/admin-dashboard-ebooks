@@ -222,11 +222,42 @@
   // Update user
   async function updateUser() {
     try {
-      // Don't update password if it's empty (editing without changing password)
-      const updateData = { ...studentForm };
-      if (!updateData.password) {
-        delete updateData.password;
+      // Build update data based on role
+      const updateData = {
+        firstName: studentForm.firstName,
+        middleName: studentForm.middleName,
+        surname: studentForm.surname,
+        email: studentForm.email,
+        username: studentForm.username,
+        role: studentForm.role,
+        activityStatus: studentForm.activityStatus
+      };
+
+      // Only update password if it's not empty
+      if (studentForm.password) {
+        updateData.password = studentForm.password;
       }
+
+      // Add role-specific fields
+      if (studentForm.role === 'student') {
+        updateData.type = studentForm.type;
+        updateData.studentType = studentForm.type === 'shs' ? 'senior-high' : 'college';
+        
+        if (studentForm.type === 'college') {
+          updateData.course = studentForm.course;
+          updateData.year = studentForm.year;
+          updateData.studentNumber = studentForm.studentNumber;
+        } else {
+          updateData.strand = studentForm.strand;
+          updateData.grade = studentForm.grade;
+          updateData.lrn = studentForm.lrn;
+        }
+      } else if (studentForm.role === 'teacher') {
+        updateData.employeeNumber = studentForm.employeeNumber;
+        updateData.department = studentForm.department;
+      }
+
+      console.log('Updating user with data:', updateData);
       
       await updateDoc(doc(db, 'users', editingUser.id), updateData);
       editingUser = null;
