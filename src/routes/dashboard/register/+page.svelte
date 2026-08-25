@@ -361,8 +361,8 @@
                   >
                     <option value="">Select Course</option>
                     <option value="BSCS">BSCS - Bachelor of Science in Computer Science</option>
-                    <option value="BSBA">BSBA - Bachelor of Science in Business Administration</option>
                     <option value="BSIT">BSIT - Bachelor of Science in Information Technology</option>
+                    <option value="BSBA">BSBA - Bachelor of Science in Business Administration</option>
                     <option value="BSIS">BSIS - Bachelor of Science in Information Systems</option>
                   </select>
                 </div>
@@ -410,8 +410,9 @@
                     <option value="ABM">ABM</option>
                     <option value="HUMSS">HUMSS</option>
                     <option value="GAS">GAS</option>
-                    <option value="TVL">TVL</option>
-                    <option value="ARTS & DESIGN">ARTS & DESIGN</option>
+option value="TVL">TVL</option>
+                    <option value="ICT - ANIMATION">ICT - ANIMATION</option>
+                    <option value="ICT">ICT</option>
                   </select>
                 </div>
               

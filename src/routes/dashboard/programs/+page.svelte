@@ -47,21 +47,13 @@
       { name: 'HUMSS', type: 'shs', subjects: ['Literature', 'English', 'Filipino', 'Arts'] },
       { name: 'GAS', type: 'shs', subjects: ['English', 'Filipino', 'Math', 'Science', 'Literature'] },
       { name: 'TVL', type: 'shs', subjects: ['Computer', 'Business', 'Health'] },
-      { name: 'ARTS & DESIGN', type: 'shs', subjects: ['Arts', 'Music', 'Literature'] },
-      { name: 'SPORTS', type: 'shs', subjects: ['Physical Education', 'Health', 'English'] },
+      { name: 'ICT - ANIMATION', type: 'shs', subjects: ['Computer', 'Arts', 'English', 'Math'] },
+      { name: 'ICT', type: 'shs', subjects: ['Computer', 'Math', 'English'] },
       // College courses
       { name: 'BSCS', type: 'college', subjects: ['Computer', 'Math', 'English'] },
       { name: 'BSIT', type: 'college', subjects: ['Computer', 'Math', 'English'] },
-      { name: 'BSIS', type: 'college', subjects: ['Computer', 'Business', 'Math'] },
       { name: 'BSBA', type: 'college', subjects: ['Business', 'Math', 'English'] },
-      { name: 'BSA', type: 'college', subjects: ['Business', 'Math', 'English'] },
-      { name: 'BSE', type: 'college', subjects: ['English', 'Math', 'Filipino'] },
-      { name: 'BSN', type: 'college', subjects: ['Science', 'Math', 'English'] },
-      { name: 'BSHM', type: 'college', subjects: ['Business', 'English', 'Math'] },
-      { name: 'BSTM', type: 'college', subjects: ['Business', 'English', 'Math'] },
-      { name: 'BSECE', type: 'college', subjects: ['Math', 'Science', 'Computer', 'English'] },
-      { name: 'BSME', type: 'college', subjects: ['Math', 'Science', 'Computer', 'English'] },
-      { name: 'BSEE', type: 'college', subjects: ['Math', 'Science', 'Computer', 'English'] }
+      { name: 'BSIS', type: 'college', subjects: ['Computer', 'Business', 'Math'] }
     ];
 
     for (const program of defaultPrograms) {
@@ -146,6 +138,27 @@
     }
   }
 
+  // Reset and reseed all programs
+  async function resetPrograms() {
+    if (!confirm('This will delete all existing programs and reseed with the default list. Are you sure?')) {
+      return;
+    }
+
+    try {
+      // Delete all existing programs
+      const snapshot = await getDocs(collection(db, 'programMappings'));
+      for (const doc of snapshot.docs) {
+        await deleteDoc(doc.ref);
+      }
+      
+      // Reseed with default programs
+      await seedDefaultPrograms();
+      await loadPrograms();
+    } catch (error) {
+      console.error('Error resetting programs:', error);
+    }
+  }
+
   // Toggle subject selection
   function toggleSubject(subject) {
     if (programForm.subjects.includes(subject)) {
@@ -199,6 +212,7 @@
       <button class="dashboard-btn" onclick={() => goto('/dashboard')}>
         Return to Dashboard
       </button>
+      <button class="reset-btn" onclick={resetPrograms}>Reset to Defaults</button>
       <button class="add-btn" onclick={() => { editingProgram = null; programForm = { name: '', type: 'shs', subjects: [] }; showForm = true; }}>
         Add Program
       </button>
@@ -368,6 +382,21 @@
   .add-btn:hover {
     background: var(--brand-hover);
     border-color: var(--brand-hover);
+  }
+
+  .reset-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: bold;
+  }
+
+  .reset-btn:hover {
+    background: #5a6268;
   }
 
   .logout-btn {
