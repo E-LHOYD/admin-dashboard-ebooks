@@ -30,10 +30,21 @@ const GOOGLE_JWKS = createRemoteJWKSet(
 const ACCEPTED_EXTENSIONS = new Set(['pdf', 'epub', 'txt']);
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
+// Covers are signed by the same route, under their own rules: images only, a
+// much smaller cap, and a covers/ prefix so they are easy to tell apart from
+// book files in the bucket. Sharing the route means one place verifies the
+// admin's Firebase token rather than two.
+const ACCEPTED_COVER_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp']);
+const MAX_COVER_BYTES = 5 * 1024 * 1024;
+
 const CONTENT_TYPES: Record<string, string> = {
 	pdf: 'application/pdf',
 	epub: 'application/epub+zip',
-	txt: 'text/plain'
+	txt: 'text/plain',
+	jpg: 'image/jpeg',
+	jpeg: 'image/jpeg',
+	png: 'image/png',
+	webp: 'image/webp'
 };
 
 /**
@@ -134,25 +145,39 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const uid = await requireAdmin(request);
 
-	const { fileName, fileSize } = await request.json();
+	const { fileName, fileSize, kind } = await request.json();
 
 	if (typeof fileName !== 'string' || !fileName.trim()) {
 		throw error(400, 'A file name is required.');
 	}
 
+	// Anything other than an explicit 'cover' is treated as a book file, so an
+	// older client that sends no kind keeps working unchanged.
+	const isCover = kind === 'cover';
+	const allowed = isCover ? ACCEPTED_COVER_EXTENSIONS : ACCEPTED_EXTENSIONS;
+	const sizeLimit = isCover ? MAX_COVER_BYTES : MAX_FILE_BYTES;
+
 	const extension = (fileName.split('.').pop() || '').toLowerCase();
 
-	if (!ACCEPTED_EXTENSIONS.has(extension)) {
-		throw error(400, `Only ${[...ACCEPTED_EXTENSIONS].join(', ')} files can be uploaded.`);
+	if (!allowed.has(extension)) {
+		throw error(
+			400,
+			isCover
+				? `A cover must be ${[...allowed].join(', ')}.`
+				: `Only ${[...allowed].join(', ')} files can be uploaded.`
+		);
 	}
 
-	if (typeof fileSize === 'number' && fileSize > MAX_FILE_BYTES) {
-		throw error(413, 'That file is larger than the 50 MB limit.');
+	if (typeof fileSize === 'number' && fileSize > sizeLimit) {
+		throw error(
+			413,
+			`That file is larger than the ${Math.round(sizeLimit / (1024 * 1024))} MB limit.`
+		);
 	}
 
 	// Timestamp keeps re-uploads of the same title from colliding, and means a
 	// replaced file gets a fresh URL rather than being served from cache.
-	const objectPath = `${Date.now()}-${slugify(fileName)}.${extension}`;
+	const objectPath = `${isCover ? 'covers/' : ''}${Date.now()}-${slugify(fileName)}.${extension}`;
 	const admin = createClient(supabaseUrl, serviceRoleKey, {
 		auth: { persistSession: false, autoRefreshToken: false }
 	});

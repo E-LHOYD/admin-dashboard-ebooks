@@ -28,8 +28,16 @@ export const SUPABASE_SETUP_HINT =
 
 export const ACCEPTED_EXTENSIONS = ['pdf', 'epub', 'txt'];
 
+// Cover images live in the same bucket under a covers/ prefix, so they are
+// public and readable by the app exactly like the book files are.
+export const ACCEPTED_COVER_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
 // Supabase's free plan rejects uploads above 50 MB.
 export const MAX_FILE_BYTES = 50 * 1024 * 1024;
+
+// A cover is decoration, not content. Keeping it small matters more here than
+// for the book itself: the app downloads it over a phone connection.
+export const MAX_COVER_BYTES = 5 * 1024 * 1024;
 
 /**
  * True if the value is a public URL served by this project's Supabase Storage.
@@ -93,6 +101,25 @@ export function validateBookFile(file) {
 
 	if (file.size > MAX_FILE_BYTES) {
 		return `That file is ${formatFileSize(file.size)}. The limit is ${formatFileSize(MAX_FILE_BYTES)}.`;
+	}
+
+	return null;
+}
+
+/**
+ * Check a chosen cover image before uploading it.
+ * @param {File} file
+ * @returns {string|null} An error message, or null if the image is acceptable.
+ */
+export function validateCoverFile(file) {
+	const ext = (file.name.split('.').pop() || '').toLowerCase();
+
+	if (!ACCEPTED_COVER_EXTENSIONS.includes(ext)) {
+		return `A cover must be ${ACCEPTED_COVER_EXTENSIONS.join(', ')}.`;
+	}
+
+	if (file.size > MAX_COVER_BYTES) {
+		return `That image is ${formatFileSize(file.size)}. The cover limit is ${formatFileSize(MAX_COVER_BYTES)}.`;
 	}
 
 	return null;

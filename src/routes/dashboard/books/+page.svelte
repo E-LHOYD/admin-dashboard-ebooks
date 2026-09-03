@@ -3,7 +3,7 @@
   import { collection, doc, updateDoc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
-  import { uploadBookFile } from '$lib/uploadBook';
+  import { uploadBookFile, uploadCoverImage } from '$lib/uploadBook';
   import { SUBJECTS, bookSubjects, subjectsLabel, hasSubject } from '$lib/subjects';
   import {
     YEAR_LEVELS,
@@ -12,11 +12,15 @@
     yearLevelsLabel,
     hasYearLevel
   } from '$lib/yearLevels';
+  import { sortRows, sortIndicator, ariaSort } from '$lib/sortTable';
   import {
     ACCEPTED_EXTENSIONS,
     formatFileSize,
     readerPath,
-    validateBookFile
+    validateBookFile,
+    ACCEPTED_COVER_EXTENSIONS,
+    MAX_COVER_BYTES,
+    validateCoverFile
   } from '$lib/supabase';
 
   // Reactive state variables
@@ -27,7 +31,42 @@
   let errorMessage = $state('');
   let replacementFile = $state(null);
   let replacementInput = $state();
+
+  let coverFile = $state(null);
+  let coverInput = $state();
+  let coverPreview = $state('');
   let saving = $state(false);
+
+  // Sorting. Every column is sorted by the value its cell shows, so a computed
+  // label like the subject list orders the way it reads.
+  let sortKey = $state('');
+  let sortDir = $state('asc');
+
+  const SORT_COLUMNS = [
+    { key: 'title', label: 'Title', value: (b) => b.title },
+    { key: 'author', label: 'Author', value: (b) => b.author },
+    { key: 'subject', label: 'Subject', value: (b) => subjectsLabel(b) },
+    { key: 'yearLevel', label: 'Year level', value: (b) => yearLevelsLabel(b) },
+    { key: 'releaseDate', label: 'Release Date', value: (b) => b.releaseDate },
+    { key: 'publishedDate', label: 'Published Date', value: (b) => b.publishedDate },
+    { key: 'file', label: 'Book file', value: (b) => b.fileName }
+  ];
+
+  function toggleSort(key) {
+    if (sortKey === key) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      return;
+    }
+    sortKey = key;
+    sortDir = 'asc';
+  }
+
+  // Sorting sits on top of filtering rather than inside it, so the two are
+  // independent: changing a filter keeps the chosen sort.
+  let sortedBooks = $derived.by(() => {
+    const column = SORT_COLUMNS.find((c) => c.key === sortKey);
+    return column ? sortRows(filteredBooks, column.value, sortDir) : filteredBooks;
+  });
 
 
   // Search and filter state
@@ -41,6 +80,8 @@
   });
 
   const acceptAttribute = ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(',');
+  const coverAccept = ACCEPTED_COVER_EXTENSIONS.map((e) => `.${e}`).join(',');
+  const coverSizeLabel = formatFileSize(MAX_COVER_BYTES);
 
   // Helper function to get today's date in YYYY-MM-DD format
   function getTodayDate() {
@@ -56,8 +97,46 @@
       yearLevels: [],
       downloadedFrom: '',
       releaseDate: getTodayDate(),
-      publishedDate: getTodayDate()
+      publishedDate: getTodayDate(),
+      // Held on the form so a removal writes an empty string back, the same way
+      // an edit to any other field does.
+      coverUrl: '',
+      coverPath: ''
     };
+  }
+
+  function handleCoverSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const problem = validateCoverFile(file);
+
+    if (problem) {
+      errorMessage = problem;
+      clearCoverSelection();
+      event.target.value = '';
+      return;
+    }
+
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    coverFile = file;
+    coverPreview = URL.createObjectURL(file);
+    errorMessage = '';
+  }
+
+  /** Drop a newly chosen image, keeping whatever cover the book already had. */
+  function clearCoverSelection() {
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    coverPreview = '';
+    coverFile = null;
+    if (coverInput) coverInput.value = '';
+  }
+
+  /** Take the cover off the book entirely. */
+  function removeCover() {
+    clearCoverSelection();
+    bookForm.coverUrl = '';
+    bookForm.coverPath = '';
   }
 
   // Book form data
@@ -165,6 +244,7 @@
     editingBook = book;
     errorMessage = '';
     replacementFile = null;
+    clearCoverSelection();
     // Copy only the editable fields. Spreading the whole book would carry the
     // document id into the form and write it back into the document.
     bookForm = {
@@ -175,7 +255,9 @@
       yearLevels: bookYearLevels(book),
       downloadedFrom: book.downloadedFrom ?? '',
       releaseDate: book.releaseDate ?? getTodayDate(),
-      publishedDate: book.publishedDate ?? getTodayDate()
+      publishedDate: book.publishedDate ?? getTodayDate(),
+      coverUrl: book.coverUrl ?? '',
+      coverPath: book.coverPath ?? ''
     };
   }
 
@@ -183,6 +265,7 @@
     editingBook = null;
     bookForm = emptyForm();
     replacementFile = null;
+    clearCoverSelection();
     errorMessage = '';
   }
 
@@ -222,6 +305,12 @@
         changes.filePath = uploaded.filePath;
         changes.fileName = uploaded.fileName;
         changes.fileSize = uploaded.fileSize;
+      }
+
+      if (coverFile) {
+        const cover = await uploadCoverImage(coverFile);
+        changes.coverUrl = cover.coverUrl;
+        changes.coverPath = cover.coverPath;
       }
 
       await updateDoc(doc(db, 'books', editingBook.id), changes);
@@ -393,18 +482,18 @@
           <thead>
             <tr>
               <th>#</th>
-              <th>Title</th>
-              <th>Author</th>
-              <th>Subject</th>
-              <th>Year level</th>
-              <th>Release Date</th>
-              <th>Published Date</th>
-              <th>Book file</th>
+              {#each SORT_COLUMNS as column}
+                <th aria-sort={ariaSort(column.key, sortKey, sortDir)}>
+                  <button class="sort-btn" onclick={() => toggleSort(column.key)}>
+                    {column.label}{sortIndicator(column.key, sortKey, sortDir)}
+                  </button>
+                </th>
+              {/each}
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {#each filteredBooks as book, index}
+            {#each sortedBooks as book, index}
               <tr>
                 <td>{index + 1}</td>
                 <td>{book.title}</td>
@@ -473,6 +562,48 @@
               {replacementFile
                 ? `Will replace the file with ${replacementFile.name} (${formatFileSize(replacementFile.size)}).`
                 : 'Choose a file only if you want to replace the current one.'}
+            </p>
+          </div>
+
+          <div class="form-group">
+            <span class="field-label">Cover image</span>
+            <div class="cover-row">
+              {#if coverPreview}
+                <img class="cover-preview" src={coverPreview} alt="New cover" />
+              {:else if bookForm.coverUrl}
+                <img class="cover-preview" src={bookForm.coverUrl} alt="Current cover" />
+              {:else}
+                <div class="cover-preview cover-placeholder">No cover</div>
+              {/if}
+
+              <div class="cover-actions">
+                <label for="edit-cover" class="cover-pick">
+                  {bookForm.coverUrl || coverFile ? 'Choose a different image' : 'Choose an image'}
+                </label>
+                <input
+                  id="edit-cover"
+                  type="file"
+                  bind:this={coverInput}
+                  onchange={handleCoverSelect}
+                  accept={coverAccept}
+                  class="file-input"
+                />
+                {#if coverFile}
+                  <button type="button" class="cover-remove" onclick={clearCoverSelection}>
+                    Cancel this change
+                  </button>
+                  <p class="field-hint">
+                    {coverFile.name} &middot; {formatFileSize(coverFile.size)} &middot; saved when you save the book.
+                  </p>
+                {:else if bookForm.coverUrl}
+                  <button type="button" class="cover-remove" onclick={removeCover}>
+                    Remove cover
+                  </button>
+                {/if}
+              </div>
+            </div>
+            <p class="field-hint">
+              Optional. {ACCEPTED_COVER_EXTENSIONS.join(', ').toUpperCase()} &middot; up to {coverSizeLabel}.
             </p>
           </div>
 
@@ -551,6 +682,88 @@
 
 <style>
   @import '../style.css';
+
+  /* A header that is also a control: a button so it is reachable by keyboard,
+     styled to look like the heading it replaces. */
+  .sort-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .sort-btn:hover {
+    color: var(--brand);
+    text-decoration: underline;
+  }
+
+  .cover-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .cover-preview {
+    width: 96px;
+    height: 132px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-alt);
+    flex-shrink: 0;
+  }
+
+  .cover-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .cover-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* A label rather than a button, so it can drive the hidden file input. */
+  .cover-pick {
+    display: inline-block;
+    background: white;
+    color: var(--brand);
+    border: 2px solid var(--brand);
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .cover-pick:hover {
+    background: var(--brand);
+    color: white;
+  }
+
+  .cover-remove {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--danger);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .file-input {
+    display: none;
+  }
 
   .subject-grid {
     display: grid;

@@ -3,6 +3,7 @@
   import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
   import { signOut, deleteUser as deleteAuthUser } from 'firebase/auth';
   import { goto } from '$app/navigation';
+  import { sortRows, sortIndicator, ariaSort } from '$lib/sortTable';
   import {
     hasRole,
     roleLabel,
@@ -21,6 +22,52 @@
   let loading = $state(true);
   let showForm = $state(false);
   let editingUser = $state(null);
+
+  // Sorting. Several columns show a value that depends on who the row is --
+  // a year for a college student, a grade for senior high, a department for a
+  // teacher -- so each column sorts by exactly what its cell renders.
+  let sortKey = $state('');
+  let sortDir = $state('asc');
+
+  const SORT_COLUMNS = [
+    { key: 'idNumber', label: 'LRN/Student/Employee #', value: (u) => idNumberOf(u) },
+    { key: 'name', label: 'Name', value: (u) => fullName(u) },
+    { key: 'username', label: 'Username', value: (u) => u.username },
+    { key: 'email', label: 'Email', value: (u) => u.email },
+    { key: 'role', label: 'Role', value: (u) => roleLabel(u) },
+    { key: 'type', label: 'Type', value: (u) => studentTypeLabel(u) },
+    {
+      key: 'gradeYear',
+      label: 'Grade/Year',
+      value: (u) => (isCollege(u) ? u.year : isSeniorHigh(u) ? u.grade : '')
+    },
+    {
+      key: 'courseStrand',
+      label: 'Course/Strand/Dept',
+      value: (u) =>
+        isCollege(u) ? u.course : isSeniorHigh(u) ? u.strand : isTeacher(u) ? u.department : ''
+    },
+    {
+      key: 'activity',
+      label: 'Activity Status',
+      value: (u) =>
+        hasRole(u, 'student') || hasRole(u, 'teacher') ? u.activityStatus || 'Active' : ''
+    }
+  ];
+
+  function toggleSort(key) {
+    if (sortKey === key) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      return;
+    }
+    sortKey = key;
+    sortDir = 'asc';
+  }
+
+  let sortedUsers = $derived.by(() => {
+    const column = SORT_COLUMNS.find((c) => c.key === sortKey);
+    return column ? sortRows(filteredUsers, column.value, sortDir) : filteredUsers;
+  });
 
   // Filter state
   let filters = $state({
@@ -452,20 +499,18 @@
           <thead>
             <tr>
               <th>#</th>
-              <th>LRN/Student/Employee #</th>
-              <th>Name</th>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Type</th>
-              <th>Grade/Year</th>
-              <th>Course/Strand/Dept</th>
-              <th>Activity Status</th>
+              {#each SORT_COLUMNS as column}
+                <th aria-sort={ariaSort(column.key, sortKey, sortDir)}>
+                  <button class="sort-btn" onclick={() => toggleSort(column.key)}>
+                    {column.label}{sortIndicator(column.key, sortKey, sortDir)}
+                  </button>
+                </th>
+              {/each}
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {#each filteredUsers as user, index}
+            {#each sortedUsers as user, index}
               <tr>
                 <td>{index + 1}</td>
                 <td>{idNumberOf(user) || '-'}</td>
@@ -695,6 +740,24 @@
 
 <style>
   @import '../style.css';
+
+  /* A header that is also a control: a button so it is reachable by keyboard,
+     styled to look like the heading it replaces. */
+  .sort-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .sort-btn:hover {
+    color: var(--brand);
+    text-decoration: underline;
+  }
 
   .dashboard-btn {
     background: white;

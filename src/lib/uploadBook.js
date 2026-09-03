@@ -12,6 +12,25 @@ import { supabase, BOOKS_BUCKET, isSupabaseConfigured, SUPABASE_SETUP_HINT } fro
  * @returns {Promise<{fileUrl: string, filePath: string, fileName: string, fileSize: number}>}
  */
 export async function uploadBookFile(file) {
+	return uploadToBucket(file, 'book');
+}
+
+/**
+ * Upload a cover image, by the same route and the same signing step.
+ *
+ * @param {File} file
+ * @returns {Promise<{coverUrl: string, coverPath: string}>}
+ */
+export async function uploadCoverImage(file) {
+	const uploaded = await uploadToBucket(file, 'cover');
+	return { coverUrl: uploaded.fileUrl, coverPath: uploaded.filePath };
+}
+
+/**
+ * @param {File} file
+ * @param {'book'|'cover'} kind
+ */
+async function uploadToBucket(file, kind) {
 	if (!isSupabaseConfigured || !supabase) {
 		throw new Error(`Storage is not configured. ${SUPABASE_SETUP_HINT}`);
 	}
@@ -30,7 +49,7 @@ export async function uploadBookFile(file) {
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${idToken}`
 		},
-		body: JSON.stringify({ fileName: file.name, fileSize: file.size })
+		body: JSON.stringify({ fileName: file.name, fileSize: file.size, kind })
 	});
 
 	if (!response.ok) {

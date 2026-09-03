@@ -3,7 +3,7 @@
   import { collection, addDoc } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
-  import { uploadBookFile } from '$lib/uploadBook';
+  import { uploadBookFile, uploadCoverImage } from '$lib/uploadBook';
   import { SUBJECTS } from '$lib/subjects';
   import { YEAR_LEVEL_GROUPS } from '$lib/yearLevels';
   import {
@@ -12,7 +12,10 @@
     formatFileSize,
     isSupabaseConfigured,
     SUPABASE_SETUP_HINT,
-    validateBookFile
+    validateBookFile,
+    ACCEPTED_COVER_EXTENSIONS,
+    MAX_COVER_BYTES,
+    validateCoverFile
   } from '$lib/supabase';
 
   // Reactive state variables
@@ -23,6 +26,41 @@
   // File handling
   let selectedFile = $state(null);
   let fileInput = $state();
+
+  let coverFile = $state(null);
+  let coverInput = $state();
+  // Object URL for the local preview. Revoked before it is replaced, otherwise
+  // every re-pick leaks the previous image for the life of the page.
+  let coverPreview = $state('');
+
+  const coverAccept = ACCEPTED_COVER_EXTENSIONS.map((e) => `.${e}`).join(',');
+  const coverSizeLabel = formatFileSize(MAX_COVER_BYTES);
+
+  function handleCoverSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const problem = validateCoverFile(file);
+
+    if (problem) {
+      errorMessage = problem;
+      clearCover();
+      event.target.value = '';
+      return;
+    }
+
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    coverFile = file;
+    coverPreview = URL.createObjectURL(file);
+    errorMessage = '';
+  }
+
+  function clearCover() {
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    coverPreview = '';
+    coverFile = null;
+    if (coverInput) coverInput.value = '';
+  }
 
   const acceptAttribute = ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(',');
   const sizeLimitLabel = formatFileSize(MAX_FILE_BYTES);
@@ -94,6 +132,10 @@
       // pointing at a file that does not exist.
       const uploaded = await uploadBookFile(selectedFile);
 
+      // Optional, and uploaded after the book file so a failed cover cannot
+      // cost the admin the much longer book upload.
+      const cover = coverFile ? await uploadCoverImage(coverFile) : null;
+
       const bookData = {
         title: bookForm.title.trim(),
         author: bookForm.author.trim(),
@@ -109,7 +151,9 @@
         fileUrl: uploaded.fileUrl,
         filePath: uploaded.filePath,
         fileName: uploaded.fileName,
-        fileSize: uploaded.fileSize
+        fileSize: uploaded.fileSize,
+        coverUrl: cover?.coverUrl ?? '',
+        coverPath: cover?.coverPath ?? ''
       };
 
       const docRef = await addDoc(collection(db, 'books'), bookData);
@@ -144,6 +188,7 @@
     };
     selectedFile = null;
     if (fileInput) fileInput.value = '';
+    clearCover();
     errorMessage = '';
     successMessage = '';
   }
@@ -227,6 +272,40 @@
           />
           <p class="field-hint">
             The file uploads straight to storage when you save, and the book record points at it.
+          </p>
+        </div>
+
+        <!-- Cover image (optional) -->
+        <div class="form-group">
+          <span class="field-label">Cover image</span>
+          <div class="cover-row">
+            {#if coverPreview}
+              <img class="cover-preview" src={coverPreview} alt="Selected cover" />
+            {:else}
+              <div class="cover-preview cover-placeholder">No cover</div>
+            {/if}
+
+            <div class="cover-actions">
+              <label for="cover-upload" class="cover-pick">
+                {coverFile ? 'Choose a different image' : 'Choose an image'}
+              </label>
+              <input
+                id="cover-upload"
+                type="file"
+                bind:this={coverInput}
+                onchange={handleCoverSelect}
+                accept={coverAccept}
+                class="file-input"
+              />
+              {#if coverFile}
+                <button type="button" class="cover-remove" onclick={clearCover}>Remove</button>
+                <p class="field-hint">{coverFile.name} &middot; {formatFileSize(coverFile.size)}</p>
+              {/if}
+            </div>
+          </div>
+          <p class="field-hint">
+            Optional. {ACCEPTED_COVER_EXTENSIONS.join(', ').toUpperCase()} &middot; up to {coverSizeLabel}.
+            Shown on the book's page in the app; a book without one simply shows no image.
           </p>
         </div>
 
@@ -369,6 +448,66 @@
   .subject-option input {
     width: auto;
     margin: 0;
+  }
+
+  .cover-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .cover-preview {
+    width: 110px;
+    height: 150px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-alt);
+    flex-shrink: 0;
+  }
+
+  .cover-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .cover-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* A label rather than a button, so it can drive the hidden file input. */
+  .cover-pick {
+    display: inline-block;
+    background: white;
+    color: var(--brand);
+    border: 2px solid var(--brand);
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .cover-pick:hover {
+    background: var(--brand);
+    color: white;
+  }
+
+  .cover-remove {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--danger);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
   }
 
   .file-upload-label {
