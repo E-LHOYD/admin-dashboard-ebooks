@@ -1,6 +1,6 @@
 <script>
   import { auth, db } from '$lib/firebase';
-  import { collection, addDoc } from 'firebase/firestore';
+  import { collection, addDoc, getDocs, query, where, limit } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
   import { uploadBookFile, uploadCoverImage } from '$lib/uploadBook';
@@ -71,6 +71,7 @@
   }
 
   let bookForm = $state({
+    bookNumber: '',
     title: '',
     author: '',
     detail: '',
@@ -105,7 +106,9 @@
     errorMessage = '';
     successMessage = '';
 
-    if (!bookForm.title || !bookForm.author) {
+    const bookNumber = bookForm.bookNumber.trim();
+
+    if (!bookNumber || !bookForm.title || !bookForm.author) {
       errorMessage = 'Please fill in all required fields';
       return;
     }
@@ -128,6 +131,15 @@
     uploading = true;
 
     try {
+      // Checked before the upload so a clash does not cost the admin the wait.
+      const clash = await getDocs(
+        query(collection(db, 'books'), where('bookNumber', '==', bookNumber), limit(1))
+      );
+      if (!clash.empty) {
+        errorMessage = `Book number ${bookNumber} is already used by "${clash.docs[0].data().title}".`;
+        return;
+      }
+
       // Uploaded before the document is written, so a book is never saved
       // pointing at a file that does not exist.
       const uploaded = await uploadBookFile(selectedFile);
@@ -137,6 +149,7 @@
       const cover = coverFile ? await uploadCoverImage(coverFile) : null;
 
       const bookData = {
+        bookNumber,
         title: bookForm.title.trim(),
         author: bookForm.author.trim(),
         detail: bookForm.detail,
@@ -177,6 +190,7 @@
   // Reset form
   function resetForm() {
     bookForm = {
+      bookNumber: '',
       title: '',
       author: '',
       detail: '',
@@ -310,6 +324,12 @@
         </div>
 
         <!-- Book Details -->
+        <div class="form-group">
+          <label class="field-label" for="book-number">Book number *</label>
+          <input id="book-number" type="text" bind:value={bookForm.bookNumber} required />
+          <p class="field-hint">The library's own number for this book. Each book needs a different one.</p>
+        </div>
+
         <div class="form-grid">
           <div class="form-group">
             <label class="field-label" for="book-title">Book title *</label>

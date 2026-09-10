@@ -11,7 +11,8 @@
     ACTIVE_NOW_MINUTES
   } from '$lib/activity';
   import { bookSubjects, DEFAULT_SUBJECTS } from '$lib/subjects';
-  import { hasRole, normalizeStudentType } from '$lib/users';
+  import { hasRole, normalizeStudentType, DEPARTMENTS } from '$lib/users';
+  import { normalizeLevel } from '$lib/yearLevels';
 
   let loading = $state(true);
   let errorMessage = $state('');
@@ -21,6 +22,12 @@
   let books = $state([]);
   let progress = $state([]);
   let customShelves = $state([]);
+
+  // The lists the dashboard manages, so a program, department or subject with
+  // nobody (or no book) in it still shows as a zero rather than disappearing.
+  let programs = $state([]);
+  let departmentNames = $state([]);
+  let subjectNames = $state([]);
 
   const DAYS = 14;
 
@@ -37,6 +44,18 @@
       users = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       books = bookSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       progress = progressSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+      // Each of these only adds zero rows to a chart, so one failing to load is
+      // no reason to lose the page: the counts still come from users and books.
+      const [programSnap, departmentSnap, subjectSnap] = await Promise.allSettled([
+        getDocs(collection(db, 'programMappings')),
+        getDocs(collection(db, 'departmentMappings')),
+        getDocs(collection(db, 'subjects'))
+      ]);
+      const docsOf = (result) => (result.status === 'fulfilled' ? result.value.docs.map((d) => d.data()) : []);
+      programs = docsOf(programSnap);
+      departmentNames = docsOf(departmentSnap).map((d) => d.department);
+      subjectNames = docsOf(subjectSnap).map((d) => d.name);
 
       // Shelves live at shelves/{userId}/userShelves/{shelfId}, so they can only
       // be read across all users with a collection group query.
@@ -66,15 +85,33 @@
   const dayKey = (d) => (d ? d.toISOString().slice(0, 10) : null);
   const pct = (n) => `${Math.round(n)}%`;
 
-  function tally(items, keyFn) {
+  /**
+   * Count items against a list of known labels, matched without regard to case
+   * or stray spaces. Known labels with nothing in them stay as zero rows; a
+   * value outside the list still gets its own row rather than being lost.
+   * keyFn may return one label or several (a book carries several subjects).
+   */
+  function countAgainst(known, items, keyFn) {
     const map = new Map();
+    const add = (raw) => {
+      if (typeof raw !== 'string' || !raw.trim()) return null;
+      const key = raw.trim().toUpperCase();
+      if (!map.has(key)) map.set(key, { label: raw.trim(), count: 0 });
+      return key;
+    };
+
+    for (const label of known) add(label);
+
     for (const item of items) {
-      const key = keyFn(item);
-      if (!key) continue;
-      map.set(key, (map.get(key) || 0) + 1);
+      const value = keyFn(item);
+      const keys = new Set((Array.isArray(value) ? value : [value]).map(add).filter(Boolean));
+      for (const key of keys) map.get(key).count++;
     }
-    return [...map.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
+
+    return [...map.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
   }
+
+  const hasText = (v) => typeof v === 'string' && v.trim() !== '';
 
   // ---------- headline figures ----------
   let booksById = $derived(new Map(books.map((b) => [b.id, b])));
@@ -114,6 +151,81 @@
   // of them, so a school registering its students here saw no students at all.
   let students = $derived(users.filter((u) => hasRole(u, 'student')));
   let teachers = $derived(users.filter((u) => hasRole(u, 'teacher')));
+
+  // ---------- at a glance ----------
+  // Each card carries the sentence shown when it is clicked, so what a number
+  // counts sits next to the number instead of in a paragraph under all of them.
+  let glanceCards = $derived([
+    {
+      key: 'books',
+      value: books.length,
+      label: 'Books in the library',
+      info: 'Every book uploaded to the library, whether or not anyone has opened it yet.'
+    },
+    {
+      key: 'read',
+      value: readRecords.length,
+      label: 'Books read',
+      info: 'Counted per book per reader: a book counts as read once a reader gets past 10% of it. One book read by three readers counts as three.'
+    },
+    {
+      key: 'progress',
+      value: pct(averagePercent),
+      label: 'Average progress',
+      info: 'How far through a book readers have got, on average, across every book each reader has opened.'
+    },
+    {
+      key: 'time',
+      value: `${Math.round(totalReadingDuration / 60)}h`,
+      label: 'Total reading time',
+      info: 'Minutes spent reading across every session by every reader, added together and shown in hours.'
+    },
+    {
+      key: 'sessions',
+      value: totalReadingSessions,
+      label: 'Reading sessions',
+      info: 'How many separate times readers have sat down with a book. Each stretch of reading counts as one session.'
+    },
+    {
+      key: 'session-length',
+      value: `${averageSessionDuration}m`,
+      label: 'Avg session duration',
+      info: 'Total reading time divided by the number of reading sessions, in minutes.'
+    },
+    {
+      key: 'shelved',
+      value: shelvedBookCount,
+      label: 'Books in created shelves',
+      info: "Books on the shelves readers made for themselves."
+    },
+    {
+      key: 'active',
+      value: activeNow,
+      label: `Active users (last ${ACTIVE_NOW_MINUTES} min)`,
+      info: `Accounts that opened the app or saved reading progress in the last ${ACTIVE_NOW_MINUTES} minutes.`
+    },
+    {
+      key: 'interests',
+      value: interestRows.length,
+      label: 'Subjects chosen as interests',
+      info: 'How many different subjects accounts have picked as interests. Each account picks three at signup.'
+    },
+    {
+      key: 'students',
+      value: students.length,
+      label: 'Students',
+      info: 'Accounts with the student role, senior high and college together.'
+    },
+    {
+      key: 'teachers',
+      value: teachers.length,
+      label: 'Teachers',
+      info: 'Accounts with the teacher role.'
+    }
+  ]);
+
+  let openCardKey = $state(null);
+  let openCard = $derived(glanceCards.find((c) => c.key === openCardKey) ?? null);
 
   // ---------- active readers per day ----------
   let activeByDay = $derived.by(() => {
@@ -192,38 +304,88 @@
   // Scaled against every subject, so bars keep their width when the list opens.
   let subjectMax = $derived(Math.max(1, ...allSubjectsWithZeros.map((r) => r.total)));
 
-  // ---------- courses ----------
-  let courseRows = $derived.by(() => {
-    const map = new Map();
-    for (const user of users) {
-      if (!user.course || typeof user.course !== 'string') continue;
-      const course = user.course.trim();
-      if (!course) continue;
-      map.set(course, (map.get(course) || 0) + 1);
-    }
-    return [...map.entries()]
-      .map(([label, count]) => ({ label, count }))
-      .sort((a, b) => b.count - a.count);
-  });
+  // ---------- programs ----------
+  // A senior high student's program is their strand, a college student's their
+  // course. Anyone without a student type is placed by whichever one they have.
+  let shsStudents = $derived(
+    students.filter((s) => {
+      const type = normalizeStudentType(s);
+      return type === 'senior-high' || (!type && hasText(s.strand) && !hasText(s.course));
+    })
+  );
+  let collegeStudents = $derived(
+    students.filter((s) => {
+      const type = normalizeStudentType(s);
+      return type === 'college' || (!type && hasText(s.course));
+    })
+  );
 
-  let courseMax = $derived(Math.max(1, ...courseRows.map((r) => r.count)));
+  const programsOfType = (type) =>
+    programs.filter((p) => String(p.type || '').toLowerCase() === type).map((p) => p.name);
+
+  let programGroups = $derived([
+    {
+      title: 'Senior High (SHS)',
+      rows: countAgainst(programsOfType('shs'), shsStudents, (s) => s.strand)
+    },
+    {
+      title: 'College',
+      rows: countAgainst(programsOfType('college'), collegeStudents, (s) => s.course)
+    }
+  ]);
+
+  let programMax = $derived(Math.max(1, ...programGroups.flatMap((g) => g.rows.map((r) => r.count))));
+
+  let studentsWithoutProgram = $derived(
+    students.filter((s) => !hasText(s.strand) && !hasText(s.course)).length
+  );
 
   // ---------- year levels ----------
+  // Senior high reads as "11 SHS" / "12 SHS" and college as "1 College" and so
+  // on. Whatever a student typed goes through normalizeLevel first, so "Grade
+  // 11", "grade11" and "11" all land on the same row.
+  const LEVEL_ORDER = ['11 SHS', '12 SHS', '1 College', '2 College', '3 College', '4 College', '5 College'];
+
+  function yearLevelLabel(user) {
+    const level = normalizeLevel(user?.grade) || normalizeLevel(user?.year) || normalizeLevel(user?.yearLevel);
+    const grade = level.match(/^Grade (\d+)$/);
+    if (grade) return `${grade[1]} SHS`;
+    const year = level.match(/^(\d)\w* Year$/);
+    if (year) return `${year[1]} College`;
+    return '';
+  }
+
   let yearLevelRows = $derived.by(() => {
-    const map = new Map();
-    for (const user of users) {
-      const year = user.year || user.grade;
-      if (!year || typeof year !== 'string') continue;
-      const level = year.trim();
-      if (!level) continue;
-      map.set(level, (map.get(level) || 0) + 1);
+    const counts = new Map(LEVEL_ORDER.map((label) => [label, 0]));
+    for (const student of students) {
+      const label = yearLevelLabel(student);
+      if (label) counts.set(label, (counts.get(label) || 0) + 1);
     }
-    return [...map.entries()]
+    // Fifth year only exists on some courses, so it is shown only when used.
+    return [...counts.entries()]
       .map(([label, count]) => ({ label, count }))
-      .sort((a, b) => b.count - a.count);
+      .filter((r) => r.label !== '5 College' || r.count > 0);
   });
 
   let yearLevelMax = $derived(Math.max(1, ...yearLevelRows.map((r) => r.count)));
+
+  let studentsWithoutLevel = $derived(students.filter((s) => !yearLevelLabel(s)).length);
+
+  // ---------- books per subject ----------
+  let booksPerSubjectRows = $derived(
+    countAgainst(subjectNames.length ? subjectNames : DEFAULT_SUBJECTS, books, (b) => bookSubjects(b))
+  );
+  let booksPerSubjectMax = $derived(Math.max(1, ...booksPerSubjectRows.map((r) => r.count)));
+  let booksWithoutSubject = $derived(books.filter((b) => bookSubjects(b).length === 0).length);
+
+  // ---------- teachers per department ----------
+  let teachersPerDepartmentRows = $derived(
+    countAgainst(departmentNames.length ? departmentNames : DEPARTMENTS, teachers, (t) => t.department)
+  );
+  let teachersPerDepartmentMax = $derived(
+    Math.max(1, ...teachersPerDepartmentRows.map((r) => r.count))
+  );
+  let teachersWithoutDepartment = $derived(teachers.filter((t) => !hasText(t.department)).length);
 
   // ---------- activity status ----------
   let activityStatusRows = $derived.by(() => {
@@ -303,17 +465,7 @@
   let hiddenBookCount = $derived(Math.max(0, allBookRows.length - BOOKS_PREVIEW));
   let bookMax = $derived(Math.max(1, ...allBookRows.map((r) => r.total)));
 
-  // ---------- academic breakdown ----------
-  let strands = $derived(
-    tally(students.filter((s) => normalizeStudentType(s) === 'senior-high'), (s) => s.strand)
-  );
-  let courses = $derived(
-    tally(students.filter((s) => normalizeStudentType(s) === 'college'), (s) => s.course)
-  );
-  let levels = $derived(tally(students, (s) => (s.grade ? `Grade ${s.grade}` : s.year ? `Year ${s.year}` : null)));
-
   // ---------- things worth acting on ----------
-  let booksWithoutFile = $derived(books.filter((b) => !b.fileUrl));
   let openedBookIds = $derived(new Set(progress.map((p) => p.bookId)));
   let neverOpened = $derived(books.filter((b) => !openedBookIds.has(b.id)));
   let showNeverOpenedModal = $state(false);
@@ -351,22 +503,31 @@
     <section class="section">
       <h2>At a glance</h2>
       <div class="kpi-row">
-        <div class="kpi"><div class="kpi-value">{readRecords.length}</div><div class="kpi-label">Books read</div></div>
-        <div class="kpi"><div class="kpi-value">{pct(averagePercent)}</div><div class="kpi-label">Average progress</div></div>
-        <div class="kpi"><div class="kpi-value">{Math.round(totalReadingDuration / 60)}h</div><div class="kpi-label">Total reading time</div></div>
-        <div class="kpi"><div class="kpi-value">{totalReadingSessions}</div><div class="kpi-label">Reading sessions</div></div>
-        <div class="kpi"><div class="kpi-value">{averageSessionDuration}m</div><div class="kpi-label">Avg session duration</div></div>
-        <div class="kpi"><div class="kpi-value">{shelvedBookCount}</div><div class="kpi-label">Books in created shelves</div></div>
-        <div class="kpi"><div class="kpi-value">{activeNow}</div><div class="kpi-label">Active users (last {ACTIVE_NOW_MINUTES} min)</div></div>
-        <div class="kpi"><div class="kpi-value">{interestRows.length}</div><div class="kpi-label">Subjects chosen as interests</div></div>
-        <div class="kpi"><div class="kpi-value">{students.length}</div><div class="kpi-label">Students</div></div>
-        <div class="kpi"><div class="kpi-value">{teachers.length}</div><div class="kpi-label">Teachers</div></div>
+        {#each glanceCards as card (card.key)}
+          <button
+            type="button"
+            class="kpi kpi-btn"
+            class:open={openCardKey === card.key}
+            aria-expanded={openCardKey === card.key}
+            aria-controls="glance-info"
+            onclick={() => (openCardKey = openCardKey === card.key ? null : card.key)}
+          >
+            <div class="kpi-value">{card.value}</div>
+            <div class="kpi-label">{card.label}</div>
+          </button>
+        {/each}
       </div>
-      <p class="note">
-        Read and viewed are counted per book per reader. A book counts as read once a
-        reader passes 10% of it, and as viewed below that. Reading time tracks total
-        minutes spent reading across all sessions.
-      </p>
+      {#if openCard}
+        <div class="kpi-info" id="glance-info" role="region" aria-live="polite">
+          <div>
+            <strong>{openCard.label}</strong>
+            <p>{openCard.info}</p>
+          </div>
+          <button type="button" class="info-close" onclick={() => (openCardKey = null)} aria-label="Close explanation">&times;</button>
+        </div>
+      {:else}
+        <p class="note">Click a card to see what it counts.</p>
+      {/if}
     </section>
 
     <!-- Active readers -->
@@ -433,51 +594,140 @@
       {/if}
     </section>
 
-    <!-- Courses -->
+    <!-- Books per subject -->
     <section class="section">
-      <h2>Students by Course</h2>
-      {#if courseRows.length === 0}
-        <p class="empty">No student course data available.</p>
+      <h2>Books per subject</h2>
+      {#if books.length === 0}
+        <p class="empty">No books in the library yet.</p>
       {:else}
         <div class="bars">
-          {#each courseRows as row}
+          {#each booksPerSubjectRows as row}
             <div class="bar-row">
               <div class="bar-label" title={row.label}>{row.label}</div>
               <div class="bar-track">
-                <div
-                  class="seg seq"
-                  style="width:{(row.count / courseMax) * 100}%"
-                  title="{row.count} students"
-                ></div>
+                {#if row.count}
+                  <div
+                    class="seg seq"
+                    style="width:{(row.count / booksPerSubjectMax) * 100}%"
+                    title="{row.count} book{row.count === 1 ? '' : 's'}"
+                  ></div>
+                {/if}
               </div>
               <div class="bar-value">{row.count}</div>
             </div>
           {/each}
         </div>
+        <p class="note">
+          A book with several subjects counts once under each.
+          {#if booksWithoutSubject > 0}
+            {booksWithoutSubject} book{booksWithoutSubject === 1 ? ' has' : 's have'} no subject set.
+          {/if}
+        </p>
+      {/if}
+    </section>
+
+    <!-- Programs -->
+    <section class="section">
+      <h2>Students by program</h2>
+      {#if students.length === 0}
+        <p class="empty">No students yet.</p>
+      {:else}
+        <div class="split">
+          {#each programGroups as group}
+            <div class="split-col">
+              <h3>{group.title}</h3>
+              {#if group.rows.length === 0}
+                <p class="empty">No programs recorded.</p>
+              {:else}
+                <div class="bars compact">
+                  {#each group.rows as row}
+                    <div class="bar-row">
+                      <div class="bar-label" title={row.label}>{row.label}</div>
+                      <div class="bar-track">
+                        {#if row.count}
+                          <div
+                            class="seg seq"
+                            style="width:{(row.count / programMax) * 100}%"
+                            title="{row.count} student{row.count === 1 ? '' : 's'}"
+                          ></div>
+                        {/if}
+                      </div>
+                      <div class="bar-value">{row.count}</div>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+        <p class="note">
+          Senior high students are counted by strand, college students by course.
+          {#if studentsWithoutProgram > 0}
+            {studentsWithoutProgram} student{studentsWithoutProgram === 1 ? ' has' : 's have'} no program set.
+          {/if}
+        </p>
       {/if}
     </section>
 
     <!-- Year Levels -->
     <section class="section">
-      <h2>Students by Year Level</h2>
-      {#if yearLevelRows.length === 0}
-        <p class="empty">No student year level data available.</p>
+      <h2>Students by year level</h2>
+      {#if students.length === 0}
+        <p class="empty">No students yet.</p>
       {:else}
         <div class="bars">
           {#each yearLevelRows as row}
             <div class="bar-row">
               <div class="bar-label" title={row.label}>{row.label}</div>
               <div class="bar-track">
-                <div
-                  class="seg seq"
-                  style="width:{(row.count / yearLevelMax) * 100}%"
-                  title="{row.count} students"
-                ></div>
+                {#if row.count}
+                  <div
+                    class="seg seq"
+                    style="width:{(row.count / yearLevelMax) * 100}%"
+                    title="{row.count} student{row.count === 1 ? '' : 's'}"
+                  ></div>
+                {/if}
               </div>
               <div class="bar-value">{row.count}</div>
             </div>
           {/each}
         </div>
+        {#if studentsWithoutLevel > 0}
+          <p class="note">
+            {studentsWithoutLevel} student{studentsWithoutLevel === 1 ? ' has' : 's have'} no year level that could be read.
+          </p>
+        {/if}
+      {/if}
+    </section>
+
+    <!-- Teachers per department -->
+    <section class="section">
+      <h2>Teachers per department</h2>
+      {#if teachers.length === 0}
+        <p class="empty">No teachers yet.</p>
+      {:else}
+        <div class="bars">
+          {#each teachersPerDepartmentRows as row}
+            <div class="bar-row">
+              <div class="bar-label" title={row.label}>{row.label}</div>
+              <div class="bar-track">
+                {#if row.count}
+                  <div
+                    class="seg seq"
+                    style="width:{(row.count / teachersPerDepartmentMax) * 100}%"
+                    title="{row.count} teacher{row.count === 1 ? '' : 's'}"
+                  ></div>
+                {/if}
+              </div>
+              <div class="bar-value">{row.count}</div>
+            </div>
+          {/each}
+        </div>
+        {#if teachersWithoutDepartment > 0}
+          <p class="note">
+            {teachersWithoutDepartment} teacher{teachersWithoutDepartment === 1 ? ' has' : 's have'} no department set.
+          </p>
+        {/if}
       {/if}
     </section>
 
@@ -565,36 +815,6 @@
           </button>
         {/if}
       {/if}
-    </section>
-
-    <!-- Academic breakdown -->
-    <section class="section">
-      <h2>Student academic details</h2>
-      <div class="split">
-        {#each [{ title: 'Senior high strands', rows: strands }, { title: 'College courses', rows: courses }, { title: 'Grade and year levels', rows: levels }] as group}
-          <div class="split-col">
-            <h3>{group.title}</h3>
-            {#if group.rows.length === 0}
-              <p class="empty">None recorded.</p>
-            {:else}
-              <div class="bars compact">
-                {#each group.rows as row}
-                  <div class="bar-row">
-                    <div class="bar-label" title={row.label}>{row.label}</div>
-                    <div class="bar-track">
-                      <div
-                        class="seg seq"
-                        style="width:{(row.count / Math.max(1, ...group.rows.map((r) => r.count))) * 100}%"
-                      ></div>
-                    </div>
-                    <div class="bar-value">{row.count}</div>
-                  </div>
-                {/each}
-              </div>
-            {/if}
-          </div>
-        {/each}
-      </div>
     </section>
 
     <!-- Actionable -->
@@ -820,7 +1040,45 @@
 
   .kpi-value { font-size: 30px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
   .kpi-label { margin-top: 6px; font-size: 13px; color: var(--text-secondary); }
-  .kpi.warn .kpi-value { color: var(--critical); }
+
+  .kpi-btn {
+    font: inherit;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .kpi-btn:hover { border-color: var(--sequential); }
+  .kpi-btn:focus-visible { outline: 2px solid var(--sequential); outline-offset: 2px; }
+  .kpi-btn.open { border-color: var(--sequential); box-shadow: 0 0 0 1px var(--sequential); }
+
+  .kpi-info {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: white;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--sequential);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+  .kpi-info strong { color: var(--text-primary); }
+  .kpi-info p { margin: 4px 0 0 0; line-height: 1.5; }
+  .info-close {
+    border: none;
+    background: none;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0 4px;
+  }
+  .info-close:hover { color: var(--text-primary); }
 
   .chart { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); }
   .chart svg { width: 100%; height: auto; display: block; }
@@ -829,12 +1087,6 @@
   .axis { fill: var(--text-muted); font-size: 11px; }
   .line { fill: none; stroke: var(--sequential); stroke-width: 2; stroke-linejoin: round; }
   .dot { fill: var(--sequential); stroke: var(--surface-1); stroke-width: 2; }
-
-  .legend { display: flex; gap: 16px; margin-bottom: 12px; font-size: 13px; color: var(--text-secondary); }
-  .key { display: inline-flex; align-items: center; gap: 6px; }
-  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-  .swatch.s1 { background: var(--series-1); }
-  .swatch.s2 { background: var(--series-2); }
 
   .bars { display: flex; flex-direction: column; gap: 10px; }
   .bars.compact { gap: 7px; }
@@ -855,16 +1107,12 @@
   .seg:first-child { border-radius: 4px; }
   .seg:hover { opacity: 0.75; }
   .seg.s1 { background: var(--series-1); }
-  .seg.s2 { background: var(--series-2); }
   .seg.seq { background: var(--sequential); }
 
   .bar-value { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 
   .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
   .split-col { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
-
-  .mini-list { margin: 12px 0 0 0; padding-left: 18px; font-size: 13px; color: var(--text-secondary); }
-  .mini-list .muted { color: var(--text-muted); list-style: none; margin-left: -18px; }
 
   .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .data-table th, .data-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border-soft); }

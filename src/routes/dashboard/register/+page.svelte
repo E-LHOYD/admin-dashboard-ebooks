@@ -3,8 +3,8 @@
   import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
   import { collection, doc, setDoc } from 'firebase/firestore';
   import { goto } from '$app/navigation';
-  import { DEFAULT_SUBJECTS } from '$lib/subjects';
   import { DEPARTMENTS } from '$lib/users';
+  import { formatUsername, peekNextNumber, reserveNumber, usernamePart } from '$lib/usernames';
 
   // Form state
   let formData = $state({
@@ -21,22 +21,41 @@
     employeeNumber: '', //if teacher
     department: '', //if teacher
     email: '',
-    username: '',
     password: '',
     confirmPassword: '',
     role: 'student',
-    interests: [],
-    activityStatus: 'Active' // Active, Graduated, Inactive (for students and teachers)
+    // Not asked at registration: every new student or teacher starts Active,
+    // and the status is changed later from user management.
+    activityStatus: 'Active'
   });
-
-  // The app makes every account choose exactly three, so this does too.
-  const REQUIRED_INTERESTS = 3;
 
   let loading = $state(false);
   let error = $state('');
   let success = $state('');
   let showPassword = $state(false);
   let showConfirmPassword = $state(false);
+
+  // ---------- generated username ----------
+  // The next number for each role, shown on the form as a preview. The number
+  // the account actually gets is taken when it is created, so if two people
+  // register at once, one of them may end up one higher than the preview.
+  let nextNumbers = $state({ student: null, teacher: null });
+
+  async function loadNextNumbers() {
+    const [student, teacher] = await Promise.all([
+      peekNextNumber('student').catch(() => null),
+      peekNextNumber('teacher').catch(() => null)
+    ]);
+    nextNumbers = { student, teacher };
+  }
+
+  loadNextNumbers();
+
+  let usernamePreview = $derived(
+    usernamePart(formData.firstName) && usernamePart(formData.surname) && nextNumbers[formData.role]
+      ? formatUsername(formData.role, formData.firstName, formData.surname, nextNumbers[formData.role])
+      : ''
+  );
 
   // Handle form submission
   async function handleRegister(event) {
@@ -48,7 +67,7 @@
     loading = true;
 
     // Validation
-    if (!formData.firstName || !formData.surname || !formData.email || !formData.username || !formData.password) {
+    if (!formData.firstName || !formData.surname || !formData.email || !formData.password) {
       error = 'Please fill in all required fields';
       loading = false;
       return;
@@ -61,20 +80,8 @@
       return;
     }
 
-    if (formData.role === 'student' && !formData.activityStatus) {
-      error = 'Please select activity status (Active, Graduated, or Inactive)';
-      loading = false;
-      return;
-    }
-
     if (formData.role === 'teacher' && (!formData.employeeNumber || !formData.department)) {
       error = 'Please fill in all teacher fields';
-      loading = false;
-      return;
-    }
-
-    if (formData.role === 'teacher' && !formData.activityStatus) {
-      error = 'Please select activity status (Active, Graduated, or Inactive)';
       loading = false;
       return;
     }
@@ -95,12 +102,6 @@
       }
     }
 
-    if (formData.interests.length !== REQUIRED_INTERESTS) {
-      error = `Please select exactly ${REQUIRED_INTERESTS} interests`;
-      loading = false;
-      return;
-    }
-
     if (formData.password !== formData.confirmPassword) {
       error = 'Passwords do not match';
       loading = false;
@@ -118,6 +119,11 @@
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
+      // Taken only once the account exists, so a failed registration (an email
+      // already in use, say) does not use up a number.
+      const number = await reserveNumber(formData.role);
+      const username = formatUsername(formData.role, formData.firstName, formData.surname, number);
+
       // Written in the same shape as the app's signup, so a user looks the
       // same whichever side created them. The password is deliberately not
       // stored: Firebase Auth holds it, and a copy in Firestore is readable by
@@ -130,9 +136,11 @@
         lastName: formData.surname,
         surname: formData.surname,
         email: formData.email,
-        username: formData.username,
+        username,
         role: formData.role,
-        interests: [...formData.interests],
+        // Chosen by the reader from their profile, not at registration. Written
+        // empty so every account has the field.
+        interests: [],
         createdAt: new Date().toISOString()
       };
 
@@ -162,7 +170,7 @@
 
       await setDoc(doc(db, 'users', user.uid), userData);
 
-      success = 'User registered successfully!';
+      success = `User registered successfully! Username: ${username}`;
       
       // Sign out the newly created user to prevent automatic login/redirect
       await signOut(auth);
@@ -182,18 +190,19 @@
         employeeNumber: '',
         department: '',
         email: '',
-        username: '',
         password: '',
         confirmPassword: '',
         role: 'student',
-        interests: [],
         activityStatus: 'Active'
       };
 
-      // Clear success message after 3 seconds
+      // The number just used is gone, so the preview moves on to the next one.
+      loadNextNumbers();
+
+      // Long enough to note the username down.
       setTimeout(() => {
         success = '';
-      }, 3000);
+      }, 8000);
 
     } catch (err) {
       console.error('Registration error:', err);
@@ -435,22 +444,6 @@
               </div>
             {/if}
           </div>
-
-          {#if formData.role === 'student' || formData.role === 'teacher'}
-            <div class="form-group" style="margin-top: 20px;">
-              <label for="activityStatus">Activity Status *</label>
-              <select 
-                id="activityStatus" 
-                bind:value={formData.activityStatus} 
-                required
-                disabled={loading}
-              >
-                <option value="Active">Active</option>
-                <option value="Graduated">Graduated</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
-          {/if}
         {/if}
 
         {#if formData.role === 'teacher'}
@@ -496,45 +489,22 @@
             </div>
             
             <div class="form-group">
-              <label for="username">Username *</label>
-              <input 
-                type="text" 
-                id="username" 
-                bind:value={formData.username} 
-                required
+              <label for="username">Username</label>
+              <input
+                type="text"
+                id="username"
+                value={usernamePreview}
+                placeholder="Filled in from the name"
+                readonly
                 disabled={loading}
               />
+              <small>
+                Generated as lastname_firstname and a number
+                ({formData.role === 'teacher' ? '4' : '5'} digits for {formData.role === 'teacher' ? 'teachers' : 'students'}).
+                The number is confirmed when the user is registered.
+              </small>
             </div>
           </div>
-        </div>
-
-        <div class="form-section">
-          <h3>Interests</h3>
-          <p class="section-hint">
-            Pick exactly {REQUIRED_INTERESTS}. These are the subjects books carry, and the
-            app uses them the same way.
-          </p>
-          <div class="interest-grid">
-            {#each DEFAULT_SUBJECTS as subject}
-              <label
-                class="interest-option"
-                class:disabled={loading ||
-                  (formData.interests.length >= REQUIRED_INTERESTS &&
-                    !formData.interests.includes(subject))}
-              >
-                <input
-                  type="checkbox"
-                  value={subject}
-                  bind:group={formData.interests}
-                  disabled={loading ||
-                    (formData.interests.length >= REQUIRED_INTERESTS &&
-                      !formData.interests.includes(subject))}
-                />
-                <span>{subject}</span>
-              </label>
-            {/each}
-          </div>
-          <p class="section-hint">{formData.interests.length}/{REQUIRED_INTERESTS} selected</p>
         </div>
 
         <div class="form-section">
@@ -610,46 +580,6 @@
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  }
-
-  .section-hint {
-    margin: 0 0 12px 0;
-    font-size: 13px;
-    color: #6f6e6a;
-  }
-
-  .interest-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 8px;
-  }
-
-  .interest-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 14px;
-    cursor: pointer;
-  }
-
-  .interest-option:hover {
-    border-color: var(--brand);
-    background: var(--brand-tint);
-  }
-
-  /* Once three are picked the rest are disabled, so they should not look
-     clickable. */
-  .interest-option.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .interest-option input {
-    width: auto;
-    margin: 0;
   }
 
   .form-section {

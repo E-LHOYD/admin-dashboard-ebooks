@@ -280,10 +280,9 @@
         activityStatus: studentForm.activityStatus
       };
 
-      // Only update password if it's not empty
-      if (studentForm.password) {
-        updateData.password = studentForm.password;
-      }
+      // No password here: the edit form does not show one. A password lives in
+      // Firebase Auth, and writing it onto the user document would not change
+      // what the reader signs in with anyway.
 
       // Add role-specific fields
       if (studentForm.role === 'student') {
@@ -590,10 +589,12 @@
                 <label>Username *</label>
                 <input type="text" placeholder="Username" bind:value={studentForm.username} required>
               </div>
-              <div>
-                <label>Password {!editingUser ? '*' : '(leave blank to keep current)'}</label>
-                <input type="password" placeholder="Password" bind:value={studentForm.password} required={!editingUser}>
-              </div>
+              {#if !editingUser}
+                <div>
+                  <label>Password *</label>
+                  <input type="password" placeholder="Password" bind:value={studentForm.password} required>
+                </div>
+              {/if}
             </div>
           </div>
 
@@ -612,7 +613,6 @@
                   <label>Activity Status *</label>
                   <select bind:value={studentForm.activityStatus} required>
                     <option value="Active">Active</option>
-                    <option value="Graduated">Graduated</option>
                     <option value="Inactive">Inactive</option>
                   </select>
                 </div>

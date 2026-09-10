@@ -43,6 +43,7 @@
   let sortDir = $state('asc');
 
   const SORT_COLUMNS = [
+    { key: 'bookNumber', label: 'Book No.', value: (b) => b.bookNumber },
     { key: 'title', label: 'Title', value: (b) => b.title },
     { key: 'author', label: 'Author', value: (b) => b.author },
     { key: 'subject', label: 'Subject', value: (b) => subjectsLabel(b) },
@@ -90,6 +91,7 @@
 
   function emptyForm() {
     return {
+      bookNumber: '',
       title: '',
       author: '',
       detail: '',
@@ -163,12 +165,14 @@
     filteredBooks = books.filter(book => {
       // Search filter
       if (searchQuery) {
-        const query = searchQuery.toLowerCase();
+        const query = searchQuery.trim().toLowerCase();
+        const bookNumber = String(book.bookNumber ?? '').toLowerCase();
         const title = book.title?.toLowerCase() || '';
         const author = book.author?.toLowerCase() || '';
         const subject = subjectsLabel(book).toLowerCase();
 
-        const matchesSearch = 
+        const matchesSearch =
+          bookNumber.includes(query) ||
           title.includes(query) ||
           author.includes(query) ||
           subject.includes(query);
@@ -248,6 +252,7 @@
     // Copy only the editable fields. Spreading the whole book would carry the
     // document id into the form and write it back into the document.
     bookForm = {
+      bookNumber: book.bookNumber ?? '',
       title: book.title ?? '',
       author: book.author ?? '',
       detail: book.detail ?? '',
@@ -293,8 +298,21 @@
     saving = true;
 
     try {
+      const bookNumber = String(bookForm.bookNumber ?? '').trim();
+
+      // Another book already holding this number would make it ambiguous.
+      // Checked against the list already loaded, leaving out this book itself.
+      if (bookNumber) {
+        const clash = books.find((b) => b.id !== editingBook.id && String(b.bookNumber ?? '').trim() === bookNumber);
+        if (clash) {
+          errorMessage = `Book number ${bookNumber} is already used by "${clash.title}".`;
+          return;
+        }
+      }
+
       const changes = {
         ...bookForm,
+        bookNumber,
         // Mirrored for the app's recommendations, which still read `subject`.
         subject: (bookForm.subjects || []).join(', ')
       };
@@ -413,7 +431,7 @@
           <input 
             id="searchInput" 
             type="text" 
-            placeholder="Search title, author, or subject" 
+            placeholder="Search book number, title, author, or subject" 
             bind:value={searchQuery}
           />
         </div>
@@ -496,6 +514,7 @@
             {#each sortedBooks as book, index}
               <tr>
                 <td>{index + 1}</td>
+                <td>{book.bookNumber || '—'}</td>
                 <td>{book.title}</td>
                 <td>{book.author}</td>
                 <td>{subjectsLabel(book) || '—'}</td>
@@ -605,6 +624,12 @@
             <p class="field-hint">
               Optional. {ACCEPTED_COVER_EXTENSIONS.join(', ').toUpperCase()} &middot; up to {coverSizeLabel}.
             </p>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label" for="edit-book-number">Book number</label>
+            <input id="edit-book-number" type="text" bind:value={bookForm.bookNumber} />
+            <p class="field-hint">Each book needs a different number.</p>
           </div>
 
           <div class="form-group">
