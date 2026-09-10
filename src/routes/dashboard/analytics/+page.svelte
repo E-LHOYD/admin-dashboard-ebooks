@@ -79,7 +79,6 @@
   // ---------- headline figures ----------
   let booksById = $derived(new Map(books.map((b) => [b.id, b])));
   let readRecords = $derived(progress.filter((p) => p.status === 'read'));
-  let viewedRecords = $derived(progress.filter((p) => p.status === 'viewed'));
 
   // ---------- reading frequency metrics ----------
   let totalReadingDuration = $derived(
@@ -146,14 +145,14 @@
     for (const p of progress) {
       // A book can carry several subjects, and counts once under each.
       const subjects = bookSubjects(booksById.get(p.bookId));
+      if (p.status !== 'read') continue;
       for (const subject of subjects) {
-        if (!map.has(subject)) map.set(subject, { label: subject, read: 0, viewed: 0 });
-        if (p.status === 'read') map.get(subject).read++;
-        else map.get(subject).viewed++;
+        if (!map.has(subject)) map.set(subject, { label: subject, read: 0 });
+        map.get(subject).read++;
       }
     }
     return [...map.values()]
-      .map((r) => ({ ...r, total: r.read + r.viewed }))
+      .map((r) => ({ ...r, total: r.read }))
       .sort((a, b) => b.total - a.total);
   });
 
@@ -163,7 +162,7 @@
 
     // Initialize all subjects with zero counts
     for (const subject of DEFAULT_SUBJECTS) {
-      subjectMap.set(subject, { label: subject, read: 0, viewed: 0 });
+      subjectMap.set(subject, { label: subject, read: 0 });
     }
     
     // Fill in actual counts from progress
@@ -172,13 +171,12 @@
       for (const subject of subjects) {
         if (subjectMap.has(subject)) {
           if (p.status === 'read') subjectMap.get(subject).read++;
-          else subjectMap.get(subject).viewed++;
         }
       }
     }
     
     return [...subjectMap.values()]
-      .map((r) => ({ ...r, total: r.read + r.viewed }))
+      .map((r) => ({ ...r, total: r.read }))
       .filter((r) => r.label !== 'Unspecified')
       .sort((a, b) => b.total - a.total);
   });
@@ -291,13 +289,13 @@
   let allBookRows = $derived.by(() => {
     const map = new Map();
     for (const p of progress) {
+      if (p.status !== 'read') continue;
       const title = booksById.get(p.bookId)?.title || 'Removed book';
-      if (!map.has(title)) map.set(title, { label: title, read: 0, viewed: 0 });
-      if (p.status === 'read') map.get(title).read++;
-      else map.get(title).viewed++;
+      if (!map.has(title)) map.set(title, { label: title, read: 0 });
+      map.get(title).read++;
     }
     return [...map.values()]
-      .map((r) => ({ ...r, total: r.read + r.viewed }))
+      .map((r) => ({ ...r, total: r.read }))
       .sort((a, b) => b.total - a.total);
   });
 
@@ -354,7 +352,6 @@
       <h2>At a glance</h2>
       <div class="kpi-row">
         <div class="kpi"><div class="kpi-value">{readRecords.length}</div><div class="kpi-label">Books read</div></div>
-        <div class="kpi"><div class="kpi-value">{viewedRecords.length}</div><div class="kpi-label">Books viewed</div></div>
         <div class="kpi"><div class="kpi-value">{pct(averagePercent)}</div><div class="kpi-label">Average progress</div></div>
         <div class="kpi"><div class="kpi-value">{Math.round(totalReadingDuration / 60)}h</div><div class="kpi-label">Total reading time</div></div>
         <div class="kpi"><div class="kpi-value">{totalReadingSessions}</div><div class="kpi-label">Reading sessions</div></div>
@@ -411,14 +408,10 @@
 
     <!-- Subjects -->
     <section class="section">
-      <h2>Subjects read and viewed</h2>
+      <h2>Subjects read</h2>
       {#if subjectRows.length === 0}
         <p class="empty">No reading activity yet.</p>
       {:else}
-        <div class="legend">
-          <span class="key"><i class="swatch s1"></i>Read</span>
-          <span class="key"><i class="swatch s2"></i>Viewed</span>
-        </div>
         <div class="bars">
           {#each subjectRows as row}
             <div class="bar-row">
@@ -427,11 +420,8 @@
                 {#if row.read}
                   <div class="seg s1" style="width:{(row.read / subjectMax) * 100}%" title="{row.read} read"></div>
                 {/if}
-                {#if row.viewed}
-                  <div class="seg s2" style="width:{(row.viewed / subjectMax) * 100}%" title="{row.viewed} viewed"></div>
-                {/if}
               </div>
-              <div class="bar-value">{row.read} / {row.viewed}</div>
+              <div class="bar-value">{row.read}</div>
             </div>
           {/each}
         </div>
@@ -552,14 +542,10 @@
 
     <!-- Most opened -->
     <section class="section">
-      <h2>Most books read and viewed</h2>
+      <h2>Most books read</h2>
       {#if allBookRows.length === 0}
-        <p class="empty">No books have been opened yet.</p>
+        <p class="empty">No books have been read yet.</p>
       {:else}
-        <div class="legend">
-          <span class="key"><i class="swatch s1"></i>Read</span>
-          <span class="key"><i class="swatch s2"></i>Viewed</span>
-        </div>
         <div class="bars">
           {#each bookRows as row}
             <div class="bar-row">
@@ -568,11 +554,8 @@
                 {#if row.read}
                   <div class="seg s1" style="width:{(row.read / bookMax) * 100}%" title="{row.read} read"></div>
                 {/if}
-                {#if row.viewed}
-                  <div class="seg s2" style="width:{(row.viewed / bookMax) * 100}%" title="{row.viewed} viewed"></div>
-                {/if}
               </div>
-              <div class="bar-value">{row.read} / {row.viewed}</div>
+              <div class="bar-value">{row.read}</div>
             </div>
           {/each}
         </div>
@@ -635,9 +618,9 @@
         <div class="split-col">
           <h3>Subjects</h3>
           <table class="data-table">
-            <thead><tr><th>Subject</th><th>Read</th><th>Viewed</th></tr></thead>
+            <thead><tr><th>Subject</th><th>Read</th></tr></thead>
             <tbody>
-              {#each allSubjectRows as r}<tr><td>{r.label}</td><td>{r.read}</td><td>{r.viewed}</td></tr>{/each}
+              {#each allSubjectRows as r}<tr><td>{r.label}</td><td>{r.read}</td></tr>{/each}
             </tbody>
           </table>
         </div>
@@ -673,10 +656,6 @@
           <h3 id="subjects-modal-title">All Subjects ({allSubjectsWithZeros.length})</h3>
           <button class="close-btn" onclick={() => showSubjectsModal = false} aria-label="Close modal">&times;</button>
         </div>
-        <div class="legend">
-          <span class="key"><i class="swatch s1"></i>Read</span>
-          <span class="key"><i class="swatch s2"></i>Viewed</span>
-        </div>
         <div class="bars">
           {#each allSubjectsWithZeros as row}
             <div class="bar-row">
@@ -685,11 +664,8 @@
                 {#if row.read}
                   <div class="seg s1" style="width:{(row.read / subjectMax) * 100}%" title="{row.read} read"></div>
                 {/if}
-                {#if row.viewed}
-                  <div class="seg s2" style="width:{(row.viewed / subjectMax) * 100}%" title="{row.viewed} viewed"></div>
-                {/if}
               </div>
-              <div class="bar-value">{row.read} / {row.viewed}</div>
+              <div class="bar-value">{row.read}</div>
             </div>
           {/each}
         </div>
@@ -705,10 +681,6 @@
           <h3 id="books-modal-title">All Books ({allBookRows.length})</h3>
           <button class="close-btn" onclick={() => showBooksModal = false} aria-label="Close modal">&times;</button>
         </div>
-        <div class="legend">
-          <span class="key"><i class="swatch s1"></i>Read</span>
-          <span class="key"><i class="swatch s2"></i>Viewed</span>
-        </div>
         <div class="bars">
           {#each allBookRows as row}
             <div class="bar-row">
@@ -717,11 +689,8 @@
                 {#if row.read}
                   <div class="seg s1" style="width:{(row.read / bookMax) * 100}%" title="{row.read} read"></div>
                 {/if}
-                {#if row.viewed}
-                  <div class="seg s2" style="width:{(row.viewed / bookMax) * 100}%" title="{row.viewed} viewed"></div>
-                {/if}
               </div>
-              <div class="bar-value">{row.read} / {row.viewed}</div>
+              <div class="bar-value">{row.read}</div>
             </div>
           {/each}
         </div>
