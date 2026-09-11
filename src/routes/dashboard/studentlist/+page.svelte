@@ -1,4 +1,5 @@
 <script>
+  import Logo from '$lib/components/Logo.svelte';
   import { auth, db } from '$lib/firebase';
   import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
   import { signOut, deleteUser as deleteAuthUser } from 'firebase/auth';
@@ -378,6 +379,7 @@
   <!-- Header -->
   <header class="page-header">
     <div class="header-content">
+      <div class="brand-line"><Logo /></div>
       <h1>Users Management</h1>
       <nav class="breadcrumb">
         <a href="/dashboard">Dashboard</a> / Users

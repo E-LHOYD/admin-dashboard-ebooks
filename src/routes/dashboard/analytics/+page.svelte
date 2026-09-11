@@ -1,4 +1,5 @@
 <script>
+  import Logo from '$lib/components/Logo.svelte';
   import { auth, db } from '$lib/firebase';
   import { collection, collectionGroup, getDocs } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
@@ -483,6 +484,7 @@
 <div class="analytics-container viz-root">
   <header class="page-header">
     <div class="header-content">
+      <div class="brand-line"><Logo /></div>
       <h1>Analytics</h1>
       <nav class="breadcrumb"><a href="/dashboard">Dashboard</a> / Analytics</nav>
     </div>

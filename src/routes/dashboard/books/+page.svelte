@@ -1,4 +1,5 @@
 <script>
+  import Logo from '$lib/components/Logo.svelte';
   import { auth, db } from '$lib/firebase';
   import { collection, doc, updateDoc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
@@ -390,8 +391,8 @@
   <!-- Header -->
   <header class="dashboard-header">
     <div class="header-left">
-      <h1>Gardner E-Books Library Dashboard</h1>
-      <p class="user-info">Books Management</p>
+      <div class="brand-line"><Logo /></div>
+      <h1>Books Management</h1>
     </div>
     <div class="header-actions">
       <button class="register-btn" onclick={() => goto('/dashboard')}>Return to Dashboard</button>
@@ -841,12 +842,6 @@
   .header-left {
     display: flex;
     flex-direction: column;
-  }
-
-  .user-info {
-    color: #666;
-    margin: 5px 0 0 0;
-    font-size: 0.875rem;
   }
 
   .banner.error {

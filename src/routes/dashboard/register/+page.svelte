@@ -1,4 +1,5 @@
 <script>
+  import Logo from '$lib/components/Logo.svelte';
   import { auth, db } from '$lib/firebase';
   import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
   import { collection, doc, setDoc } from 'firebase/firestore';
@@ -251,6 +252,7 @@
   <!-- Header -->
   <header class="page-header">
     <div class="header-content">
+      <div class="brand-line"><Logo /></div>
       <h1>User Registration</h1>
       <nav class="breadcrumb">
         <a href="/dashboard">Dashboard</a> / Register User

@@ -1,4 +1,5 @@
 <script>
+  import Logo from '$lib/components/Logo.svelte';
   // Import Firebase services
   import { auth, db } from '$lib/firebase'; // Firebase auth and database instances
   import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'; // Email/password authentication
@@ -141,7 +142,8 @@
   <div class="w-full max-w-md">
     <!-- Logo/Brand Section -->
     <div class="text-center mb-8">
-      <h1 class="text-xl font-bold text-gray-900 mb-2">Gardner E-Books Library Portal</h1>
+      <div class="flex justify-center mb-4"><Logo label={false} size="large" /></div>
+      <h1 class="text-xl font-bold text-gray-900 mb-2">GD-Library Admin Portal</h1>
       <p class="text-gray-600 text-sm">Admin Login</p>
     </div>
     
@@ -253,14 +255,14 @@
       <!-- Footer -->
       <div class="mt-6 text-center">
         <p class="text-sm text-gray-500">
-          Secure admin access for Gardner E-Books Library Portal
+          Secure admin access for GD-Library Admin Portal
         </p>
       </div>
     </div>
 
-    <!-- Copyright -->
-    <p class="text-center text-gray-500 text-sm mt-8">
-      © 2025 Gardner E-Books Library Portal. All rights reserved.
-    </p>
+    <!-- Footer -->
+    <footer class="text-center text-gray-500 text-sm mt-8 pt-4 border-t border-gray-200">
+      © 2026 GD-Library Admin Portal. All rights reserved.
+    </footer>
   </div>
 </div>

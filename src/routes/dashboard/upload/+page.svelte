@@ -1,4 +1,5 @@
 <script>
+  import Logo from '$lib/components/Logo.svelte';
   import { auth, db } from '$lib/firebase';
   import { collection, addDoc, getDocs, query, where, limit } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
@@ -223,6 +224,7 @@
   <!-- Header -->
   <header class="page-header">
     <div class="header-content">
+      <div class="brand-line"><Logo /></div>
       <h1>Upload Book</h1>
       <nav class="breadcrumb">
         <a href="/dashboard">Dashboard</a> / <a href="/dashboard/books">Books</a> / Upload

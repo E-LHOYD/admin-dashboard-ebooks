@@ -1,4 +1,5 @@
 <script>
+  import Logo from '$lib/components/Logo.svelte';
   import { auth, db } from '$lib/firebase';
   import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
   import { signOut, onAuthStateChanged } from 'firebase/auth';
@@ -197,7 +198,8 @@
   <!-- Header -->
   <header class="dashboard-header">
     <div class="header-left">
-      <h1>Gardner E-Books Library Dashboard</h1>
+      <div class="brand-line"><Logo /></div>
+      <h1>Dashboard</h1>
       {#if currentUser}
         <p class="user-info">Welcome, {currentUser.username || currentUser.email}</p>
       {/if}
@@ -309,10 +311,10 @@
         <a href="/dashboard/programs" class="management-card">
           <div class="card-icon">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 10v6M2 10v6"></path>
-              <path d="M20 20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12z"></path>
-              <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2"></path>
-              <path d="M12 4v2"></path>
+              <!-- Graduation cap: the programs students are enrolled in. -->
+              <path d="M22 10 12 5 2 10l10 5 10-5z"></path>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+              <path d="M22 10v6"></path>
             </svg>
           </div>
           <h3>Student Programs</h3>
@@ -323,9 +325,10 @@
         <a href="/dashboard/departments" class="management-card">
           <div class="card-icon">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 21h18"></path>
-              <path d="M5 21V7l8-4 8 4v14"></path>
-              <path d="M13 10a2 2 0 1 1-4 0"></path>
+              <!-- A teacher at a board: the departments teachers belong to. -->
+              <path d="M2 3h20"></path>
+              <path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"></path>
+              <path d="m7 21 5-5 5 5"></path>
             </svg>
           </div>
           <h3>Teacher Departments</h3>
