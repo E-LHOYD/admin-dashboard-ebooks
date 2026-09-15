@@ -247,16 +247,18 @@
     // If no data, return empty array
     if (allDates.size === 0) return [];
     
-    // Find the earliest and latest dates
+    // Find the earliest date from data
     const sortedDates = [...allDates].sort();
     const earliest = sortedDates[0];
-    const latest = sortedDates[sortedDates.length - 1];
+    
+    // Use today's date as the end date to include all days up to today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     // Create buckets for all dates in the range (including days with no activity)
     const currentDate = new Date(earliest);
-    const endDate = new Date(latest);
     
-    while (currentDate <= endDate) {
+    while (currentDate <= today) {
       buckets.set(dayKey(currentDate), new Set());
       currentDate.setDate(currentDate.getDate() + 1);
     }
