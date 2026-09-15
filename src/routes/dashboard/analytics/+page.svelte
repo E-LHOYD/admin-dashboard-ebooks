@@ -30,8 +30,6 @@
   let departmentNames = $state([]);
   let subjectNames = $state([]);
 
-  const DAYS = 14;
-
   async function loadAll() {
     loading = true;
     errorMessage = '';
@@ -157,41 +155,12 @@
   // Each card carries the sentence shown when it is clicked, so what a number
   // counts sits next to the number instead of in a paragraph under all of them.
   let glanceCards = $derived([
+    // About Books
     {
       key: 'books',
       value: books.length,
       label: 'Books in the library',
       info: 'Every book uploaded to the library, whether or not anyone has opened it yet.'
-    },
-    {
-      key: 'read',
-      value: readRecords.length,
-      label: 'Books read',
-      info: 'Counted per book per reader: a book counts as read once a reader gets past 10% of it. One book read by three readers counts as three.'
-    },
-    {
-      key: 'progress',
-      value: pct(averagePercent),
-      label: 'Average progress',
-      info: 'How far through a book readers have got, on average, across every book each reader has opened.'
-    },
-    {
-      key: 'time',
-      value: `${Math.round(totalReadingDuration / 60)}h`,
-      label: 'Total reading time',
-      info: 'Minutes spent reading across every session by every reader, added together and shown in hours.'
-    },
-    {
-      key: 'sessions',
-      value: totalReadingSessions,
-      label: 'Reading sessions',
-      info: 'How many separate times readers have sat down with a book. Each stretch of reading counts as one session.'
-    },
-    {
-      key: 'session-length',
-      value: `${averageSessionDuration}m`,
-      label: 'Avg session duration',
-      info: 'Total reading time divided by the number of reading sessions, in minutes.'
     },
     {
       key: 'shelved',
@@ -200,16 +169,42 @@
       info: "Books on the shelves readers made for themselves."
     },
     {
+      key: 'read',
+      value: readRecords.length,
+      label: 'Books read',
+      info: 'Counted per book per reader: a book counts as read once a reader gets past 10% of it. One book read by three readers counts as three.'
+    },
+    // Reading Sessions
+    {
+      key: 'sessions',
+      value: totalReadingSessions,
+      label: 'Reading sessions',
+      info: 'How many separate times readers have sat down with a book. Each stretch of reading counts as one session.'
+    },
+    {
+      key: 'time',
+      value: `${Math.round(totalReadingDuration / 60)}h`,
+      label: 'Total reading time',
+      info: 'Minutes spent reading across every session by every reader, added together and shown in hours.'
+    },
+    {
+      key: 'session-length',
+      value: `${averageSessionDuration}m`,
+      label: 'Avg session duration',
+      info: 'Total reading time divided by the number of reading sessions, in minutes.'
+    },
+    {
+      key: 'progress',
+      value: pct(averagePercent),
+      label: 'Average progress',
+      info: 'How far through a book readers have got, on average, across every book each reader has opened.'
+    },
+    // Users
+    {
       key: 'active',
       value: activeNow,
       label: `Active users (last ${ACTIVE_NOW_MINUTES} min)`,
       info: `Accounts that opened the app or saved reading progress in the last ${ACTIVE_NOW_MINUTES} minutes.`
-    },
-    {
-      key: 'interests',
-      value: interestRows.length,
-      label: 'Subjects chosen as interests',
-      info: 'How many different subjects accounts have picked as interests. Each account picks three at signup.'
     },
     {
       key: 'students',
@@ -222,6 +217,12 @@
       value: teachers.length,
       label: 'Teachers',
       info: 'Accounts with the teacher role.'
+    },
+    {
+      key: 'interests',
+      value: interestRows.length,
+      label: 'Subjects chosen as interests',
+      info: 'How many different subjects accounts have picked as interests. Each account picks three at signup.'
     }
   ]);
 
@@ -231,22 +232,69 @@
   // ---------- active readers per day ----------
   let activeByDay = $derived.by(() => {
     const buckets = new Map();
-    for (let i = DAYS - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      d.setDate(d.getDate() - i);
-      buckets.set(dayKey(d), new Set());
+    
+    // Collect all dates from the data first
+    const allDates = new Set();
+    for (const p of progress) {
+      const date = asDate(p.lastReadAt);
+      if (date) allDates.add(dayKey(date));
     }
+    for (const u of users) {
+      const date = asDate(u.lastSeenAt);
+      if (date) allDates.add(dayKey(date));
+    }
+    
+    // If no data, return empty array
+    if (allDates.size === 0) return [];
+    
+    // Find the earliest and latest dates
+    const sortedDates = [...allDates].sort();
+    const earliest = sortedDates[0];
+    const latest = sortedDates[sortedDates.length - 1];
+    
+    // Create buckets for all dates in the range (including days with no activity)
+    const currentDate = new Date(earliest);
+    const endDate = new Date(latest);
+    
+    while (currentDate <= endDate) {
+      buckets.set(dayKey(currentDate), new Set());
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
     const record = (userId, date) => {
       const key = dayKey(date);
       if (key && buckets.has(key) && userId) buckets.get(key).add(userId);
     };
     for (const p of progress) record(p.userId, asDate(p.lastReadAt));
     for (const u of users) record(u.id, asDate(u.lastSeenAt));
-    return [...buckets.entries()].map(([day, set]) => ({ day, count: set.size }));
+    
+    // Sort by date and return
+    return [...buckets.entries()]
+      .map(([day, set]) => ({ day, count: set.size }))
+      .sort((a, b) => a.day.localeCompare(b.day));
   });
 
   let peakActive = $derived(Math.max(1, ...activeByDay.map((d) => d.count)));
+  let showActiveReadersModal = $state(false);
+  const ACTIVE_READERS_PREVIEW = 7;
+  let activeReadersPreview = $derived(activeByDay.slice(-ACTIVE_READERS_PREVIEW));
+  let activeReadersFilter = $state('newest'); // 'newest', 'oldest', 'most-read', 'least-read'
+  
+  let filteredActiveReaders = $derived.by(() => {
+    const sorted = [...activeByDay];
+    switch (activeReadersFilter) {
+      case 'newest':
+        return sorted.sort((a, b) => b.day.localeCompare(a.day));
+      case 'oldest':
+        return sorted.sort((a, b) => a.day.localeCompare(b.day));
+      case 'most-read':
+        return sorted.sort((a, b) => b.count - a.count || a.day.localeCompare(b.day));
+      case 'least-read':
+        return sorted.sort((a, b) => a.count - b.count || a.day.localeCompare(b.day));
+      default:
+        return sorted;
+    }
+  });
 
   // ---------- subjects ----------
   const SUBJECTS_PREVIEW = 5;
@@ -504,8 +552,11 @@
     <!-- Headline figures -->
     <section class="section">
       <h2>At a glance</h2>
+      
+      <!-- About Books -->
+      <h3>About Books</h3>
       <div class="kpi-row">
-        {#each glanceCards as card (card.key)}
+        {#each glanceCards.filter(c => ['books', 'shelved', 'read'].includes(c.key)) as card (card.key)}
           <button
             type="button"
             class="kpi kpi-btn"
@@ -519,6 +570,43 @@
           </button>
         {/each}
       </div>
+      
+      <!-- Reading Sessions -->
+      <h3>Reading Sessions</h3>
+      <div class="kpi-row">
+        {#each glanceCards.filter(c => ['sessions', 'time', 'session-length', 'progress'].includes(c.key)) as card (card.key)}
+          <button
+            type="button"
+            class="kpi kpi-btn"
+            class:open={openCardKey === card.key}
+            aria-expanded={openCardKey === card.key}
+            aria-controls="glance-info"
+            onclick={() => (openCardKey = openCardKey === card.key ? null : card.key)}
+          >
+            <div class="kpi-value">{card.value}</div>
+            <div class="kpi-label">{card.label}</div>
+          </button>
+        {/each}
+      </div>
+      
+      <!-- Users -->
+      <h3>Users</h3>
+      <div class="kpi-row">
+        {#each glanceCards.filter(c => ['active', 'students', 'teachers', 'interests'].includes(c.key)) as card (card.key)}
+          <button
+            type="button"
+            class="kpi kpi-btn"
+            class:open={openCardKey === card.key}
+            aria-expanded={openCardKey === card.key}
+            aria-controls="glance-info"
+            onclick={() => (openCardKey = openCardKey === card.key ? null : card.key)}
+          >
+            <div class="kpi-value">{card.value}</div>
+            <div class="kpi-label">{card.label}</div>
+          </button>
+        {/each}
+      </div>
+      
       {#if openCard}
         <div class="kpi-info" id="glance-info" role="region" aria-live="polite">
           <div>
@@ -536,10 +624,10 @@
     <section class="section">
       <h2>Active readers per day</h2>
       {#if activeByDay.every((d) => d.count === 0)}
-        <p class="empty">No reading activity recorded in the last {DAYS} days.</p>
+        <p class="empty">No reading activity recorded.</p>
       {:else}
         <div class="chart">
-          <svg viewBox="0 0 720 200" role="img" aria-label="Active readers per day over the last {DAYS} days">
+          <svg viewBox="0 0 720 200" role="img" aria-label="Active readers per day over time">
             {#each [0, 0.5, 1] as g}
               <line class="grid" x1="40" x2="710" y1={20 + g * 140} y2={20 + g * 140} />
               <text class="axis" x="32" y={24 + g * 140} text-anchor="end">{Math.round(peakActive * (1 - g))}</text>
@@ -862,9 +950,14 @@
           <table class="data-table">
             <thead><tr><th>Day</th><th>Readers</th></tr></thead>
             <tbody>
-              {#each activeByDay as d}<tr><td>{d.day}</td><td>{d.count}</td></tr>{/each}
+              {#each activeReadersPreview as d}<tr><td>{d.day}</td><td>{d.count}</td></tr>{/each}
             </tbody>
           </table>
+          {#if activeByDay.length > ACTIVE_READERS_PREVIEW}
+            <button class="more-btn" onclick={() => showActiveReadersModal = true}>
+              View all ({activeByDay.length} days)
+            </button>
+          {/if}
         </div>
       </div>
     </section>
@@ -945,6 +1038,37 @@
       </div>
     </div>
   {/if}
+
+  <!-- Active Readers Modal -->
+  {#if showActiveReadersModal}
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="active-readers-modal-title" onclick={(e) => { if (e.target === e.currentTarget) showActiveReadersModal = false; }}>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="active-readers-modal-title">Active Readers Per Day ({activeByDay.length} days)</h3>
+          <button class="close-btn" onclick={() => showActiveReadersModal = false} aria-label="Close modal">&times;</button>
+        </div>
+        <div class="modal-filters">
+          <button class="filter-btn" class:active={activeReadersFilter === 'newest'} onclick={() => activeReadersFilter = 'newest'}>Newest</button>
+          <button class="filter-btn" class:active={activeReadersFilter === 'oldest'} onclick={() => activeReadersFilter = 'oldest'}>Oldest</button>
+          <button class="filter-btn" class:active={activeReadersFilter === 'most-read'} onclick={() => activeReadersFilter = 'most-read'}>Most Read</button>
+          <button class="filter-btn" class:active={activeReadersFilter === 'least-read'} onclick={() => activeReadersFilter = 'least-read'}>Least Read</button>
+        </div>
+        <div class="modal-table">
+          <table class="data-table">
+            <thead><tr><th>Day</th><th>Readers</th></tr></thead>
+            <tbody>
+              {#each filteredActiveReaders as d}
+                <tr>
+                  <td>{d.day}</td>
+                  <td>{d.count}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -990,6 +1114,36 @@
     cursor: pointer;
   }
 
+  .modal-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    background: none;
+    color: var(--text-secondary);
+    border: 1px solid var(--grid);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-btn:hover {
+    background: var(--surface-1);
+    color: var(--text-primary);
+  }
+
+  .filter-btn.active {
+    background: var(--series-1);
+    color: white;
+    border-color: var(--series-1);
+  }
+
   .more-btn:hover {
     background: var(--surface-1);
   }
@@ -1021,7 +1175,7 @@
 
   .section { margin-bottom: 40px; }
   .section h2 { color: var(--text-heading); font-size: 1rem; font-weight: bold; margin-bottom: 20px; }
-  .section h3 { color: var(--text-heading); font-size: 0.9rem; font-weight: bold; margin: 0 0 10px 0; }
+  .section h3 { color: var(--text-heading); font-size: 0.9rem; font-weight: bold; margin: 20px 0 10px 0; }
 
   .note { margin-top: 10px; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
   .empty { color: var(--text-muted); font-size: 14px; }
