@@ -7,12 +7,10 @@
   import { sortRows, sortIndicator, ariaSort } from '$lib/sortTable';
   import {
     hasRole,
-    roleLabel,
     normalizeStudentType,
     studentTypeLabel,
     isCollege,
     isSeniorHigh,
-    isTeacher,
     idNumberOf,
     fullName
   } from '$lib/users';
@@ -31,11 +29,10 @@
   let sortDir = $state('asc');
 
   const SORT_COLUMNS = [
-    { key: 'idNumber', label: 'LRN/Student/Employee #', value: (u) => idNumberOf(u) },
+    { key: 'idNumber', label: 'LRN/Student #', value: (u) => idNumberOf(u) },
     { key: 'name', label: 'Name', value: (u) => fullName(u) },
     { key: 'username', label: 'Username', value: (u) => u.username },
     { key: 'email', label: 'Email', value: (u) => u.email },
-    { key: 'role', label: 'Role', value: (u) => roleLabel(u) },
     { key: 'type', label: 'Type', value: (u) => studentTypeLabel(u) },
     {
       key: 'gradeYear',
@@ -44,15 +41,13 @@
     },
     {
       key: 'courseStrand',
-      label: 'Course/Strand/Dept',
-      value: (u) =>
-        isCollege(u) ? u.course : isSeniorHigh(u) ? u.strand : isTeacher(u) ? u.department : ''
+      label: 'Course/Strand',
+      value: (u) => isCollege(u) ? u.course : isSeniorHigh(u) ? u.strand : ''
     },
     {
       key: 'activity',
       label: 'Activity Status',
-      value: (u) =>
-        hasRole(u, 'student') || hasRole(u, 'teacher') ? u.activityStatus || 'Active' : ''
+      value: (u) => u.activityStatus || 'Active'
     }
   ];
 
@@ -75,7 +70,6 @@
     type: '',
     course: '',
     strand: '',
-    role: '',
     grade: '',
     year: '',
     activityStatus: ''
@@ -101,8 +95,6 @@
     strand: '',
     grade: '',
     lrn: '',
-    employeeNumber: '',
-    department: '',
     interests: []
   });
 
@@ -111,11 +103,13 @@
     try {
       const usersQuery = query(collection(db, 'users'), orderBy('surname'));
       const usersSnapshot = await getDocs(usersQuery);
-      users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Filter only students
+      users = allUsers.filter(u => hasRole(u, 'student'));
       applyFilters();
       loading = false;
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('Error loading students:', error);
       loading = false;
     }
   }
@@ -160,12 +154,6 @@
         return false;
       }
       
-      // Role filter
-      // Same for role: the app writes 'student', the dashboard wrote 'Student'.
-      if (filters.role && !hasRole(user, filters.role)) {
-        return false;
-      }
-      
       // Grade filter (for SHS students)
       if (filters.grade && user.grade !== filters.grade) {
         return false;
@@ -191,7 +179,6 @@
       type: '',
       course: '',
       strand: '',
-      role: '',
       grade: '',
       year: '',
       activityStatus: ''
@@ -228,8 +215,6 @@
         strand: '',
         grade: '',
         lrn: '',
-        employeeNumber: '',
-        department: '',
         interests: []
       };
       showForm = false;
@@ -258,11 +243,9 @@
       strand: user.strand || '',
       grade: user.grade || '',
       lrn: user.lrn || '',
-      employeeNumber: user.employeeNumber || '',
-      department: user.department || '',
       interests: user.interests || []
     };
-    console.log('Editing user:', user);
+    console.log('Editing student:', user);
     console.log('Form data:', studentForm);
     showForm = true;
   }
@@ -270,7 +253,6 @@
   // Update user
   async function updateUser() {
     try {
-      // Build update data based on role
       const updateData = {
         firstName: studentForm.firstName,
         middleName: studentForm.middleName,
@@ -278,33 +260,23 @@
         email: studentForm.email,
         username: studentForm.username,
         role: studentForm.role,
-        activityStatus: studentForm.activityStatus
+        activityStatus: studentForm.activityStatus,
+        type: studentForm.type,
+        studentType: studentForm.type === 'shs' ? 'senior-high' : 'college'
       };
 
-      // No password here: the edit form does not show one. A password lives in
-      // Firebase Auth, and writing it onto the user document would not change
-      // what the reader signs in with anyway.
-
-      // Add role-specific fields
-      if (studentForm.role === 'student') {
-        updateData.type = studentForm.type;
-        updateData.studentType = studentForm.type === 'shs' ? 'senior-high' : 'college';
-        
-        if (studentForm.type === 'college') {
-          updateData.course = studentForm.course;
-          updateData.year = studentForm.year;
-          updateData.studentNumber = studentForm.studentNumber;
-        } else {
-          updateData.strand = studentForm.strand;
-          updateData.grade = studentForm.grade;
-          updateData.lrn = studentForm.lrn;
-        }
-      } else if (studentForm.role === 'teacher') {
-        updateData.employeeNumber = studentForm.employeeNumber;
-        updateData.department = studentForm.department;
+      // Add student-specific fields
+      if (studentForm.type === 'college') {
+        updateData.course = studentForm.course;
+        updateData.year = studentForm.year;
+        updateData.studentNumber = studentForm.studentNumber;
+      } else {
+        updateData.strand = studentForm.strand;
+        updateData.grade = studentForm.grade;
+        updateData.lrn = studentForm.lrn;
       }
 
-      console.log('Updating user with data:', updateData);
+      console.log('Updating student with data:', updateData);
       
       await updateDoc(doc(db, 'users', editingUser.id), updateData);
       editingUser = null;
@@ -324,25 +296,23 @@
         strand: '',
         grade: '',
         lrn: '',
-        employeeNumber: '',
-        department: '',
         interests: []
       };
       showForm = false;
       await loadUsers(); // Refresh data
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error('Error updating student:', error);
     }
   }
 
   // Delete user
   async function deleteUser(userId) {
-    if (confirm('Are you sure you want to delete this user? Note: To allow the email to be reused, you must also delete the user from Firebase Authentication Console.')) {
+    if (confirm('Are you sure you want to delete this student? Note: To allow the email to be reused, you must also delete the user from Firebase Authentication Console.')) {
       try {
         await deleteDoc(doc(db, 'users', userId));
         await loadUsers(); // Refresh data
       } catch (error) {
-        console.error('Error deleting user:', error);
+        console.error('Error deleting student:', error);
       }
     }
   }
@@ -380,9 +350,9 @@
   <header class="page-header">
     <div class="header-content">
       <div class="brand-line"><Logo /></div>
-      <h1>Users Management</h1>
+      <h1>Students Management</h1>
       <nav class="breadcrumb">
-        <a href="/dashboard">Dashboard</a> / Users
+        <a href="/dashboard">Dashboard</a> / Students
       </nav>
     </div>
     <div class="header-actions">
@@ -390,14 +360,14 @@
         Return to Dashboard
       </button>
       <button class="add-btn" onclick={() => goto('/dashboard/register')}>
-        Register User
+        Register Student
       </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
   </header>
 
   {#if loading}
-    <div class="loading">Loading users...</div>
+    <div class="loading">Loading students...</div>
   {:else}
     <!-- Filters Section -->
     <section class="filters-section">
@@ -413,14 +383,7 @@
           />
         </div>
         
-        <div class="filter-group">
-          <label for="roleFilter">Role</label>
-          <select id="roleFilter" bind:value={filters.role} onchange={applyFilters}>
-            <option value="">All Roles</option>
-            <option value="Student">Student</option>
-            <option value="Teacher">Teacher</option>
-          </select>
-        </div>
+
         
         <div class="filter-group">
           <label for="typeFilter">Type</label>
@@ -488,12 +451,12 @@
 
         <div class="filter-actions">
           <button class="reset-filters-btn" onclick={resetFilters}>Reset Filters</button>
-          <span class="results-count">Showing {filteredUsers.length} of {users.length} users</span>
+          <span class="results-count">Showing {filteredUsers.length} of {users.length} students</span>
         </div>
       </div>
     </section>
 
-    <!-- Users Table -->
+    <!-- Students Table -->
     <section class="table-section">
       <div class="table-container">
         <table class="data-table">
@@ -518,7 +481,6 @@
                 <td>{fullName(user)}</td>
                 <td>{user.username}</td>
                 <td>{user.email}</td>
-                <td>{roleLabel(user) || '-'}</td>
                 <td>{studentTypeLabel(user) || '-'}</td>
                 <td>
                   {#if isCollege(user)}
@@ -534,18 +496,12 @@
                     {user.course || '-'}
                   {:else if isSeniorHigh(user)}
                     {user.strand || '-'}
-                  {:else if isTeacher(user)}
-                    {user.department || '-'}
                   {:else}
                     -
                   {/if}
                 </td>
                 <td>
-                  {#if hasRole(user, 'student') || hasRole(user, 'teacher')}
-                    {user.activityStatus || 'Active'}
-                  {:else}
-                    -
-                  {/if}
+                  {user.activityStatus || 'Active'}
                 </td>
                 <td>
                   <button class="table-btn edit-btn" onclick={() => editUser(user)}>Edit</button>
@@ -564,7 +520,7 @@
     <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1" onclick={handleOverlayClick} onkeydown={handleKeydown}>
       <div class="modal-content" role="document">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h3 id="modal-title">{editingUser ? 'Edit User' : 'Add New User'}</h3>
+          <h3 id="modal-title">{editingUser ? 'Edit Student' : 'Add New Student'}</h3>
           <button type="button" class="close-btn" onclick={() => showForm = false} aria-label="Close modal">&times;</button>
         </div>
         <form onsubmit={(e) => { e.preventDefault(); editingUser ? updateUser() : addStudent(); }}>
@@ -601,42 +557,33 @@
           </div>
 
           <div class="form-section">
-            <h4>Role</h4>
+            <h4>Student Information</h4>
             <div class="form-grid">
               <div>
-                <label>Role *</label>
-                <select bind:value={studentForm.role} required>
-                  <option value="student">Student</option>
-                  <option value="teacher">Teacher</option>
+                <label>Activity Status *</label>
+                <select bind:value={studentForm.activityStatus} required>
+                  <option value="Active">Active</option>
+                  <option value="Graduated">Graduated</option>
+                  <option value="Inactive">Inactive</option>
                 </select>
               </div>
-              {#if studentForm.role === 'student' || studentForm.role === 'teacher'}
-                <div>
-                  <label>Activity Status *</label>
-                  <select bind:value={studentForm.activityStatus} required>
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
-              {/if}
             </div>
           </div>
 
-          {#if studentForm.role === 'student'}
-            <div class="form-section">
-              <h4>Student Type</h4>
-              <div class="form-grid">
-                <div>
-                  <label>Type *</label>
-                  <select bind:value={studentForm.type} required>
-                    <option value="college">College</option>
-                    <option value="shs">Senior High</option>
-                  </select>
-                </div>
+          <div class="form-section">
+            <h4>Student Type</h4>
+            <div class="form-grid">
+              <div>
+                <label>Type *</label>
+                <select bind:value={studentForm.type} required>
+                  <option value="college">College</option>
+                  <option value="shs">Senior High</option>
+                </select>
               </div>
             </div>
+          </div>
 
-            {#if studentForm.type === 'college'}
+          {#if studentForm.type === 'college'}
               <div class="form-section">
                 <h4>College Information</h4>
                 <div class="form-grid">
@@ -732,7 +679,7 @@
 
           <div class="modal-actions">
             <button type="button" class="cancel-btn" onclick={() => showForm = false}>Cancel</button>
-            <button type="submit" class="submit-btn">{editingUser ? 'Update User' : 'Add User'}</button>
+            <button type="submit" class="submit-btn">{editingUser ? 'Update Student' : 'Add Student'}</button>
           </div>
         </form>
       </div>

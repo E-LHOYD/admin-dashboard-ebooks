@@ -11,9 +11,12 @@
     minutesAgo,
     ACTIVE_NOW_MINUTES
   } from '$lib/activity';
+  import { hasRole } from '$lib/users';
 
   // Reactive state variables
   let totalUsers = $state(0);
+  let totalStudents = $state(0);
+  let totalTeachers = $state(0);
   let totalBooks = $state(0);
   let activeNow = $state(0);
   let loading = $state(true);
@@ -93,7 +96,7 @@
       console.log('Fetching dashboard data...');
       console.log('Firebase db instance:', db);
       
-      // Get total users count
+      // Get total users count and separate by role
       try {
         console.log('Attempting to fetch users collection...');
         const usersCollectionRef = collection(db, 'users');
@@ -101,7 +104,15 @@
         
         const usersSnapshot = await getDocs(usersCollectionRef);
         totalUsers = usersSnapshot.size;
+        
+        // Count students and teachers
+        const allUsers = usersSnapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+        totalStudents = allUsers.filter(u => hasRole(u, 'student')).length;
+        totalTeachers = allUsers.filter(u => hasRole(u, 'teacher')).length;
+        
         console.log('Users collection size:', totalUsers);
+        console.log('Students count:', totalStudents);
+        console.log('Teachers count:', totalTeachers);
         console.log('Users snapshot empty:', usersSnapshot.empty);
         console.log('Users snapshot metadata:', usersSnapshot.metadata);
         console.log('Users snapshot docs length:', usersSnapshot.docs.length);
@@ -266,9 +277,22 @@
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
           </div>
-          <h3>Users Management</h3>
-          <p>Register and manage user accounts</p>
-          <div class="card-stats">{totalUsers} registered users</div>
+          <h3>Students Management</h3>
+          <p>Register and manage student accounts</p>
+          <div class="card-stats">{totalStudents} students</div>
+        </a>
+
+        <a href="/dashboard/teachers" class="management-card">
+          <div class="card-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h20"></path>
+              <path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"></path>
+              <path d="m7 21 5-5 5 5"></path>
+            </svg>
+          </div>
+          <h3>Teachers Management</h3>
+          <p>Register and manage teacher accounts</p>
+          <div class="card-stats">{totalTeachers} teachers</div>
         </a>
 
         <a href="/dashboard/books" class="management-card">
