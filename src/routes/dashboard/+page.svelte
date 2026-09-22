@@ -327,7 +327,7 @@
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
             </svg>
           </div>
-          <h3>Subjects</h3>
+          <h3>Subjects Management</h3>
           <p>Manage book subjects</p>
           <div class="card-stats">Customize library categories</div>
         </a>
@@ -341,7 +341,7 @@
               <path d="M22 10v6"></path>
             </svg>
           </div>
-          <h3>Student Programs</h3>
+          <h3>Programs Mapping</h3>
           <p>Map student programs to subjects</p>
           <div class="card-stats">Configure recommendations</div>
         </a>
@@ -355,7 +355,7 @@
               <path d="m7 21 5-5 5 5"></path>
             </svg>
           </div>
-          <h3>Teacher Departments</h3>
+          <h3>Departments Mapping</h3>
           <p>Map teacher departments to subjects</p>
           <div class="card-stats">Configure recommendations</div>
         </a>

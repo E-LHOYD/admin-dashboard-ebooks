@@ -36,12 +36,16 @@
 
 .dashboard-container,
 .students-container,
+.teachers-container,
+.subjects-container,
+.programs-container,
+.departments-container,
 .upload-container,
 .register-container,
 .analytics-container {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 15px;
   background: white;
   min-height: 100vh;
   font-family: Arial, sans-serif;
@@ -55,8 +59,8 @@
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
   border-bottom: 2px solid var(--border);
 }
 
@@ -106,7 +110,7 @@
 .filters-section,
 .table-section,
 .upload-section {
-  margin-bottom: 40px;
+  margin-bottom: 25px;
 }
 
 .stats-section h2,
@@ -178,6 +182,56 @@
   width: auto;
 }
 
+/* Secondary: navigation buttons like "Return to Dashboard" */
+.dashboard-btn {
+  background: white;
+  color: var(--brand);
+  border: 2px solid var(--brand);
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: bold;
+}
+
+.dashboard-btn:hover {
+  background: var(--brand);
+  color: white;
+}
+
+/* Add button style */
+.add-btn {
+  background: var(--brand);
+  color: white;
+  border: 2px solid var(--brand);
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: bold;
+}
+
+.add-btn:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+}
+
+/* Logout button style */
+.logout-btn {
+  background: var(--danger);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: bold;
+}
+
+.logout-btn:hover {
+  background: var(--danger-hover);
+}
+
 .register-btn:hover,
 .action-btn:hover,
 .submit-btn:hover {
@@ -224,7 +278,7 @@
 /* ---------- tables ---------- */
 
 .table-container {
-  overflow-x: auto;
+  overflow-x: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -234,24 +288,29 @@
   width: 100%;
   border-collapse: collapse;
   background: white;
+  table-layout: fixed;
+  font-size: 0.75rem;
 }
 
 .data-table th {
   background: var(--surface-alt);
-  padding: 12px;
+  padding: 6px 4px;
   text-align: left;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.7rem;
   color: var(--text-heading);
   border-bottom: 2px solid var(--border-soft);
-  white-space: nowrap;
+  white-space: normal;
+  word-wrap: break-word;
 }
 
 .data-table td {
-  padding: 12px;
-  font-size: 0.875rem;
+  padding: 6px 4px;
+  font-size: 0.75rem;
   border-bottom: 1px solid var(--border-soft);
   color: var(--text-body);
+  word-wrap: break-word;
+  white-space: normal;
 }
 
 .data-table tr:last-child td {
@@ -262,35 +321,55 @@
   background: var(--brand-tint);
 }
 
+/* Sort buttons in table headers */
+.sort-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: normal;
+  font-size: 0.7rem;
+}
+
+.sort-btn:hover {
+  color: var(--brand);
+  text-decoration: underline;
+}
+
 /* Row actions, sized down from the page-level buttons but the same shapes. */
 .table-btn {
-  padding: 5px 12px;
+  padding: 3px 6px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  margin-right: 5px;
-  font-size: 12px;
+  margin-right: 2px;
+  font-size: 10px;
   font-weight: 600;
   background: white;
 }
 
 .edit-btn {
-  color: var(--brand);
+  background: var(--brand);
+  color: white;
   border: 1px solid var(--brand);
 }
 
 .edit-btn:hover {
-  background: var(--brand);
-  color: white;
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
 }
 
 .delete-btn {
-  color: var(--danger);
+  background: var(--danger);
+  color: white;
   border: 1px solid var(--danger);
 }
 
 .delete-btn:hover {
-  background: var(--danger);
-  color: white;
+  background: var(--danger-hover);
+  border-color: var(--danger-hover);
 }
 
 /* ---------- filters ---------- */
@@ -298,13 +377,13 @@
 .filters-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   align-items: flex-end;
   background: white;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 20px;
+  padding: 12px;
 }
 
 .filter-group,
@@ -326,7 +405,7 @@
 
 .filter-group label,
 .search-group label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-heading);
 }
@@ -334,12 +413,12 @@
 .filter-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   margin-left: auto;
 }
 
 .results-count {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -372,10 +451,10 @@
 .filter-group input,
 .search-group input {
   width: 100%;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 13px;
   font-family: inherit;
   color: var(--text-body);
   background: white;

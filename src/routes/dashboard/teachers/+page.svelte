@@ -282,7 +282,7 @@
       <button class="dashboard-btn" onclick={() => goto('/dashboard')}>
         Return to Dashboard
       </button>
-      <button class="add-btn" onclick={() => goto('/dashboard/register')}>
+      <button class="register-btn" onclick={() => goto('/dashboard/register')}>
         Register Teacher
       </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
@@ -292,9 +292,32 @@
   {#if loading}
     <div class="loading">Loading teachers...</div>
   {:else}
+    <!-- Statistics Cards -->
+    <section class="stats-section">
+      <h2>Overview</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">{users.length}</div>
+          <div class="stat-label">Total Teachers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{filteredUsers.length}</div>
+          <div class="stat-label">Filtered Teachers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{users.filter(u => u.activityStatus === 'Active').length}</div>
+          <div class="stat-label">Active Teachers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{users.filter(u => u.activityStatus === 'Inactive').length}</div>
+          <div class="stat-label">Inactive Teachers</div>
+        </div>
+      </div>
+    </section>
+
     <!-- Filters Section -->
-    <section class="filters-section">
-      <h3>Filters</h3>
+    <section class="stats-section">
+      <h2>Filters</h2>
       <div class="filters-container">
         <div class="search-group">
           <label for="searchInput">Search</label>
@@ -392,29 +415,29 @@
             <h4>Personal Information</h4>
             <div class="form-grid">
               <div>
-                <label>First Name *</label>
-                <input type="text" placeholder="First Name" bind:value={teacherForm.firstName} required>
+                <label for="firstName">First Name *</label>
+                <input id="firstName" type="text" placeholder="First Name" bind:value={teacherForm.firstName} required>
               </div>
               <div>
-                <label>Middle Name</label>
-                <input type="text" placeholder="Middle Name" bind:value={teacherForm.middleName}>
+                <label for="middleName">Middle Name</label>
+                <input id="middleName" type="text" placeholder="Middle Name" bind:value={teacherForm.middleName}>
               </div>
               <div>
-                <label>Surname *</label>
-                <input type="text" placeholder="Surname" bind:value={teacherForm.surname} required>
+                <label for="surname">Surname *</label>
+                <input id="surname" type="text" placeholder="Surname" bind:value={teacherForm.surname} required>
               </div>
               <div>
-                <label>Email *</label>
-                <input type="email" placeholder="Email" bind:value={teacherForm.email} required>
+                <label for="email">Email *</label>
+                <input id="email" type="email" placeholder="Email" bind:value={teacherForm.email} required>
               </div>
               <div>
-                <label>Username *</label>
-                <input type="text" placeholder="Username" bind:value={teacherForm.username} required>
+                <label for="username">Username *</label>
+                <input id="username" type="text" placeholder="Username" bind:value={teacherForm.username} required>
               </div>
               {#if !editingUser}
                 <div>
-                  <label>Password *</label>
-                  <input type="password" placeholder="Password" bind:value={teacherForm.password} required>
+                  <label for="password">Password *</label>
+                  <input id="password" type="password" placeholder="Password" bind:value={teacherForm.password} required>
                 </div>
               {/if}
             </div>
@@ -424,12 +447,12 @@
             <h4>Teacher Information</h4>
             <div class="form-grid">
               <div>
-                <label>Employee Number *</label>
-                <input type="text" placeholder="Employee Number" bind:value={teacherForm.employeeNumber} required>
+                <label for="employeeNumber">Employee Number *</label>
+                <input id="employeeNumber" type="text" placeholder="Employee Number" bind:value={teacherForm.employeeNumber} required>
               </div>
               <div>
-                <label>Department *</label>
-                <select bind:value={teacherForm.department} required>
+                <label for="department">Department *</label>
+                <select id="department" bind:value={teacherForm.department} required>
                   <option value="">Select Department</option>
                   <option value="Filipino">Filipino</option>
                   <option value="Social Science">Social Science</option>
@@ -445,8 +468,8 @@
                 </select>
               </div>
               <div>
-                <label>Activity Status *</label>
-                <select bind:value={teacherForm.activityStatus} required>
+                <label for="activityStatus">Activity Status *</label>
+                <select id="activityStatus" bind:value={teacherForm.activityStatus} required>
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
@@ -467,295 +490,104 @@
 <style>
   @import '../style.css';
 
-  .teachers-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 20px;
+  /* Teachers-specific column widths */
+  .data-table th:nth-child(1) {
+    width: 30px;
   }
 
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border);
+  .data-table th:nth-child(2) {
+    width: 120px;
   }
 
-  .header-content {
-    display: flex;
-    flex-direction: column;
+  .data-table th:nth-child(3) {
+    width: 140px;
   }
 
-  .brand-line {
-    margin-bottom: 10px;
+  .data-table th:nth-child(4) {
+    width: 120px;
   }
 
-  .breadcrumb {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    margin-top: 5px;
+  .data-table th:nth-child(5) {
+    width: 140px;
   }
 
-  .breadcrumb a {
-    color: var(--brand);
-    text-decoration: none;
+  .data-table th:nth-child(6) {
+    width: 70px;
   }
 
-  .breadcrumb a:hover {
-    text-decoration: underline;
+  .data-table th:nth-child(7) {
+    width: 80px;
   }
 
-  .header-actions {
-    display: flex;
-    gap: 10px;
+  .data-table th:nth-child(8) {
+    width: 80px;
   }
 
-  .dashboard-btn,
-  .add-btn,
-  .logout-btn {
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-  }
-
-  .dashboard-btn {
-    background: white;
-    color: var(--brand);
-    border: 2px solid var(--brand);
-  }
-
-  .dashboard-btn:hover {
-    background: var(--brand);
-    color: white;
-  }
-
-  .add-btn {
-    background: var(--brand);
-    color: white;
-  }
-
-  .add-btn:hover {
-    background: var(--brand-dark);
-  }
-
-  .logout-btn {
-    background: var(--critical);
-    color: white;
-  }
-
-  .logout-btn:hover {
-    background: var(--critical-dark);
-  }
-
-  .filters-section {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
+  .form-section {
     margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e9ecef;
   }
 
-  .filters-section h3 {
+  .form-section:last-child {
+    border-bottom: none;
+  }
+
+  .form-section h4 {
     margin: 0 0 15px 0;
-    color: var(--text-heading);
-  }
-
-  .filters-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    align-items: end;
-  }
-
-  .search-group,
-  .filter-group {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .search-group label,
-  .filter-group label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-bottom: 5px;
-    color: var(--text-heading);
-  }
-
-  .search-group input,
-  .filter-group select {
-    padding: 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-size: 0.875rem;
-  }
-
-  .filter-actions {
-    grid-column: 1 / -1;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 10px;
-  }
-
-  .reset-filters-btn {
-    background: var(--surface-alt);
-    color: var(--text-heading);
-    border: 1px solid var(--border);
-    padding: 8px 16px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 0.875rem;
-  }
-
-  .reset-filters-btn:hover {
-    background: var(--border);
-  }
-
-  .results-count {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-  }
-
-  .table-section {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-  }
-
-  .table-container {
-    overflow-x: auto;
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .data-table th {
-    background: var(--surface-alt);
-    font-weight: 600;
-    color: var(--text-heading);
-  }
-
-  .sort-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: inherit;
-    font-weight: inherit;
-    color: inherit;
-    padding: 0;
-    text-align: left;
-  }
-
-  .sort-btn:hover {
     color: var(--brand);
+    font-size: 1rem;
+    font-weight: 600;
   }
 
-  .table-btn {
-    padding: 6px 12px;
-    border-radius: var(--radius-sm);
+  .form-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
     font-size: 0.875rem;
-    cursor: pointer;
-    border: none;
-    margin-right: 5px;
+    color: #343a40;
   }
 
-  .edit-btn {
-    background: var(--brand);
-    color: white;
+  .form-section input,
+  .form-section select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.875rem;
   }
 
-  .edit-btn:hover {
-    background: var(--brand-dark);
-  }
-
-  .delete-btn {
-    background: var(--critical);
-    color: white;
-  }
-
-  .delete-btn:hover {
-    background: var(--critical-dark);
-  }
-
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .modal-content {
-    background: white;
-    border-radius: var(--radius);
-    padding: 30px;
-    max-width: 600px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
+  .form-section input:focus,
+  .form-section select:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(3, 48, 71, 0.1);
   }
 
   .close-btn {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 24px;
     cursor: pointer;
-    color: var(--text-muted);
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
   }
 
   .close-btn:hover {
-    color: var(--text-heading);
+    background: #f8f9fa;
+    color: #333;
   }
 
-  .form-section {
-    margin-bottom: 20px;
-  }
-
-  .form-section h4 {
-    margin: 0 0 15px 0;
-    color: var(--text-heading);
-  }
-
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-  }
-
-  .form-grid label {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-bottom: 5px;
-    color: var(--text-heading);
-  }
-
-  .form-grid input,
-  .form-grid select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-size: 0.875rem;
+  .close-btn:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
   }
 
   .form-actions {

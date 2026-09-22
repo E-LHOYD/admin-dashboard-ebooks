@@ -359,7 +359,7 @@
       <button class="dashboard-btn" onclick={() => goto('/dashboard')}>
         Return to Dashboard
       </button>
-      <button class="add-btn" onclick={() => goto('/dashboard/register')}>
+      <button class="register-btn" onclick={() => goto('/dashboard/register')}>
         Register Student
       </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
@@ -369,9 +369,32 @@
   {#if loading}
     <div class="loading">Loading students...</div>
   {:else}
+    <!-- Statistics Cards -->
+    <section class="stats-section">
+      <h2>Overview</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">{users.length}</div>
+          <div class="stat-label">Total Students</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{filteredUsers.length}</div>
+          <div class="stat-label">Filtered Students</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{users.filter(u => normalizeStudentType(u) === 'college').length}</div>
+          <div class="stat-label">College Students</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{users.filter(u => normalizeStudentType(u) === 'senior-high').length}</div>
+          <div class="stat-label">Senior High Students</div>
+        </div>
+      </div>
+    </section>
+
     <!-- Filters Section -->
-    <section class="filters-section">
-      <h3>Filters</h3>
+    <section class="stats-section">
+      <h2>Filters</h2>
       <div class="filters-container">
         <div class="search-group">
           <label for="searchInput">Search</label>
@@ -528,29 +551,29 @@
             <h4>Personal Information</h4>
             <div class="form-grid">
               <div>
-                <label>First Name *</label>
-                <input type="text" placeholder="First Name" bind:value={studentForm.firstName} required>
+                <label for="firstName">First Name *</label>
+                <input id="firstName" type="text" placeholder="First Name" bind:value={studentForm.firstName} required>
               </div>
               <div>
-                <label>Middle Name</label>
-                <input type="text" placeholder="Middle Name" bind:value={studentForm.middleName}>
+                <label for="middleName">Middle Name</label>
+                <input id="middleName" type="text" placeholder="Middle Name" bind:value={studentForm.middleName}>
               </div>
               <div>
-                <label>Surname *</label>
-                <input type="text" placeholder="Surname" bind:value={studentForm.surname} required>
+                <label for="surname">Surname *</label>
+                <input id="surname" type="text" placeholder="Surname" bind:value={studentForm.surname} required>
               </div>
               <div>
-                <label>Email *</label>
-                <input type="email" placeholder="Email" bind:value={studentForm.email} required>
+                <label for="email">Email *</label>
+                <input id="email" type="email" placeholder="Email" bind:value={studentForm.email} required>
               </div>
               <div>
-                <label>Username *</label>
-                <input type="text" placeholder="Username" bind:value={studentForm.username} required>
+                <label for="username">Username *</label>
+                <input id="username" type="text" placeholder="Username" bind:value={studentForm.username} required>
               </div>
               {#if !editingUser}
                 <div>
-                  <label>Password *</label>
-                  <input type="password" placeholder="Password" bind:value={studentForm.password} required>
+                  <label for="password">Password *</label>
+                  <input id="password" type="password" placeholder="Password" bind:value={studentForm.password} required>
                 </div>
               {/if}
             </div>
@@ -560,8 +583,8 @@
             <h4>Student Information</h4>
             <div class="form-grid">
               <div>
-                <label>Activity Status *</label>
-                <select bind:value={studentForm.activityStatus} required>
+                <label for="activityStatus">Activity Status *</label>
+                <select id="activityStatus" bind:value={studentForm.activityStatus} required>
                   <option value="Active">Active</option>
                   <option value="Graduated">Graduated</option>
                   <option value="Inactive">Inactive</option>
@@ -574,8 +597,8 @@
             <h4>Student Type</h4>
             <div class="form-grid">
               <div>
-                <label>Type *</label>
-                <select bind:value={studentForm.type} required>
+                <label for="type">Type *</label>
+                <select id="type" bind:value={studentForm.type} required>
                   <option value="college">College</option>
                   <option value="shs">Senior High</option>
                 </select>
@@ -588,12 +611,12 @@
                 <h4>College Information</h4>
                 <div class="form-grid">
                   <div>
-                    <label>Student Number</label>
-                    <input type="text" placeholder="Student Number" bind:value={studentForm.studentNumber}>
+                    <label for="studentNumber">Student Number</label>
+                    <input id="studentNumber" type="text" placeholder="Student Number" bind:value={studentForm.studentNumber}>
                   </div>
                   <div>
-                    <label>Course</label>
-                    <select bind:value={studentForm.course}>
+                    <label for="course">Course</label>
+                    <select id="course" bind:value={studentForm.course}>
                       <option value="">Select Course</option>
                       <option value="BSCS">BSCS</option>
                       <option value="BSIT">BSIT</option>
@@ -602,8 +625,8 @@
                     </select>
                   </div>
                   <div>
-                    <label>Year</label>
-                    <select bind:value={studentForm.year}>
+                    <label for="year">Year</label>
+                    <select id="year" bind:value={studentForm.year}>
                       <option value="">Select Year</option>
                       <option value="1st Year">1st Year</option>
                       <option value="2nd Year">2nd Year</option>
@@ -619,12 +642,12 @@
                 <h4>Senior High Information</h4>
                 <div class="form-grid">
                   <div>
-                    <label>Learner's Reference Number (LRN)</label>
-                    <input type="text" placeholder="LRN" bind:value={studentForm.lrn}>
+                    <label for="lrn">Learner's Reference Number (LRN)</label>
+                    <input id="lrn" type="text" placeholder="LRN" bind:value={studentForm.lrn}>
                   </div>
                   <div>
-                    <label>Strand</label>
-                    <select bind:value={studentForm.strand}>
+                    <label for="strand">Strand</label>
+                    <select id="strand" bind:value={studentForm.strand}>
                       <option value="">Select Strand</option>
                       <option value="STEM">STEM</option>
                       <option value="ABM">ABM</option>
@@ -636,8 +659,8 @@
                     </select>
                   </div>
                   <div>
-                    <label>Grade</label>
-                    <select bind:value={studentForm.grade}>
+                    <label for="grade">Grade</label>
+                    <select id="grade" bind:value={studentForm.grade}>
                       <option value="">Select Grade</option>
                       <option value="Grade 11">Grade 11</option>
                       <option value="Grade 12">Grade 12</option>
@@ -646,36 +669,6 @@
                 </div>
               </div>
             {/if}
-          {/if}
-
-          {#if studentForm.role === 'teacher'}
-            <div class="form-section">
-              <h4>Teacher Information</h4>
-              <div class="form-grid">
-                <div>
-                  <label>Employee Number</label>
-                  <input type="text" placeholder="Employee Number" bind:value={studentForm.employeeNumber}>
-                </div>
-                <div>
-                  <label>Department</label>
-                  <select bind:value={studentForm.department}>
-                    <option value="">Select Department</option>
-                    <option value="Filipino">Filipino</option>
-                    <option value="Social Science">Social Science</option>
-                    <option value="ICT">ICT</option>
-                    <option value="Animation">Animation</option>
-                    <option value="P.E.">P.E.</option>
-                    <option value="ABM">ABM</option>
-                    <option value="English">English</option>
-                    <option value="STEM">STEM</option>
-                    <option value="Science">Science</option>
-                    <option value="Math">Math</option>
-                    <option value="Business">Business</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          {/if}
 
           <div class="modal-actions">
             <button type="button" class="cancel-btn" onclick={() => showForm = false}>Cancel</button>
@@ -690,54 +683,45 @@
 <style>
   @import '../style.css';
 
-  /* A header that is also a control: a button so it is reachable by keyboard,
-     styled to look like the heading it replaces. */
-  .sort-btn {
-    background: none;
-    border: none;
-    padding: 0;
-    font: inherit;
-    color: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
+  /* Student-specific column widths */
+  .data-table th:nth-child(1) {
+    width: 30px;
   }
 
-  .sort-btn:hover {
-    color: var(--brand);
-    text-decoration: underline;
+  .data-table th:nth-child(2) {
+    width: 100px;
   }
 
-  .dashboard-btn {
-    background: white;
-    color: var(--brand);
-    border: 2px solid var(--brand);
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
+  .data-table th:nth-child(3) {
+    width: 150px;
   }
 
-  .dashboard-btn:hover {
-    background: var(--brand);
-    color: white;
+  .data-table th:nth-child(4) {
+    width: 120px;
   }
 
-  .add-btn {
-    background: var(--brand);
-    color: white;
-    border: 2px solid var(--brand);
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
+  .data-table th:nth-child(5) {
+    width: 140px;
   }
 
-  .add-btn:hover {
-    background: var(--brand-hover);
-    border-color: var(--brand-hover);
+  .data-table th:nth-child(6) {
+    width: 70px;
+  }
+
+  .data-table th:nth-child(7) {
+    width: 70px;
+  }
+
+  .data-table th:nth-child(8) {
+    width: 80px;
+  }
+
+  .data-table th:nth-child(9) {
+    width: 80px;
+  }
+
+  .data-table th:nth-child(10) {
+    width: 80px;
   }
 
   .form-section {
@@ -779,15 +763,6 @@
     outline: none;
     border-color: var(--brand);
     box-shadow: 0 0 0 3px rgba(3, 48, 71, 0.1);
-  }
-
-  .data-table code {
-    background: #f8f9fa;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 11px;
-    color: #e83e8c;
-    font-family: 'Courier New', monospace;
   }
 
   .data-table th:nth-child(1) {

@@ -5,6 +5,7 @@
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
   import { DEFAULT_SUBJECTS } from '$lib/subjects';
+  import { sortRows, sortIndicator, ariaSort } from '$lib/sortTable';
 
   // Reactive state variables
   let programs = $state([]);
@@ -12,6 +13,58 @@
   let loading = $state(true);
   let showForm = $state(false);
   let editingProgram = $state(null);
+  let searchQuery = $state('');
+  let typeFilter = $state('');
+
+  // Sorting
+  let sortKey = $state('');
+  let sortDir = $state('asc');
+
+  const SORT_COLUMNS = [
+    { key: 'name', label: 'Program Name', value: (p) => p.name },
+    { key: 'type', label: 'Type', value: (p) => p.type === 'shs' ? 'Senior High' : 'College' },
+    { key: 'subjects', label: 'Matched Subjects', value: (p) => p.subjects?.join(', ') || '' },
+    { key: 'createdAt', label: 'Created At', value: (p) => p.createdAt }
+  ];
+
+  function toggleSort(key) {
+    if (sortKey === key) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      return;
+    }
+    sortKey = key;
+    sortDir = 'asc';
+  }
+
+  let filteredPrograms = $derived.by(() => {
+    let result = programs.filter(program => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const name = program.name?.toLowerCase() || '';
+        const subjects = program.subjects?.join(', ').toLowerCase() || '';
+        
+        const matchesSearch = name.includes(query) || subjects.includes(query);
+        if (!matchesSearch) return false;
+      }
+
+      // Type filter
+      if (typeFilter && program.type !== typeFilter) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Apply sorting
+    const column = SORT_COLUMNS.find((c) => c.key === sortKey);
+    return column ? sortRows(result, column.value, sortDir) : result;
+  });
+
+  function resetFilters() {
+    searchQuery = '';
+    typeFilter = '';
+  }
 
   // Program form data
   let programForm = $state({
@@ -191,16 +244,16 @@
   <header class="page-header">
     <div class="header-content">
       <div class="brand-line"><Logo /></div>
-      <h1>Student Programs Management</h1>
+      <h1>Programs Mapping</h1>
       <nav class="breadcrumb">
-        <a href="/dashboard">Dashboard</a> / Programs
+        <a href="/dashboard">Dashboard</a> / Programs Mapping
       </nav>
     </div>
     <div class="header-actions">
       <button class="dashboard-btn" onclick={() => goto('/dashboard')}>
         Return to Dashboard
       </button>
-      <button class="add-btn" onclick={() => { editingProgram = null; programForm = { name: '', type: 'shs', subjects: [] }; showForm = true; }}>
+      <button class="register-btn" onclick={() => { editingProgram = null; programForm = { name: '', type: 'shs', subjects: [] }; showForm = true; }}>
         Add Program
       </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
@@ -210,62 +263,58 @@
   {#if loading}
     <div class="loading">Loading programs...</div>
   {:else}
-    <!-- Senior High Programs -->
-    <section class="table-section">
-      <h2 class="section-title">Senior High Strands</h2>
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Program Name</th>
-              <th>Matched Subjects</th>
-              <th>Created At</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each programs.filter(p => p.type === 'shs') as program, index}
-              <tr>
-                <td>{index + 1}</td>
-                <td>{program.name}</td>
-                <td>{program.subjects ? program.subjects.join(', ') : 'None'}</td>
-                <td>{new Date(program.createdAt).toLocaleDateString()}</td>
-                <td>
-                  <button class="table-btn edit-btn" onclick={() => editProgram(program)}>Edit</button>
-                  <button class="table-btn delete-btn" onclick={() => deleteProgram(program.id)}>Delete</button>
-                </td>
-              </tr>
-            {/each}
-            {#if programs.filter(p => p.type === 'shs').length === 0}
-              <tr>
-                <td colspan="5" class="empty-row">No SHS programs found. Click "Add Program" to create mappings for senior high strands.</td>
-              </tr>
-            {/if}
-          </tbody>
-        </table>
+    <!-- Filters Section -->
+    <section class="filters-section">
+      <div class="filters-container">
+        <div class="search-group">
+          <label for="programSearchInput">Search</label>
+          <input 
+            id="programSearchInput" 
+            type="text" 
+            placeholder="Search program name" 
+            bind:value={searchQuery}
+          />
+        </div>
+        
+        <div class="filter-group">
+          <label for="programTypeFilter">Type</label>
+          <select id="programTypeFilter" bind:value={typeFilter}>
+            <option value="">All Types</option>
+            <option value="shs">Senior High</option>
+            <option value="college">College</option>
+          </select>
+        </div>
+
+        <div class="filter-actions">
+          <button class="reset-filters-btn" onclick={resetFilters}>Reset Filters</button>
+          <span class="results-count">Showing {filteredPrograms.length} of {programs.length} programs</span>
+        </div>
       </div>
     </section>
 
-    <!-- College Programs -->
+    <!-- Programs Table -->
     <section class="table-section">
-      <h2 class="section-title">College Courses</h2>
       <div class="table-container">
         <table class="data-table">
           <thead>
             <tr>
               <th>#</th>
-              <th>Program Name</th>
-              <th>Matched Subjects</th>
-              <th>Created At</th>
+              {#each SORT_COLUMNS as column}
+                <th aria-sort={ariaSort(column.key, sortKey, sortDir)}>
+                  <button class="sort-btn" onclick={() => toggleSort(column.key)}>
+                    {column.label}{sortIndicator(column.key, sortKey, sortDir)}
+                  </button>
+                </th>
+              {/each}
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {#each programs.filter(p => p.type === 'college') as program, index}
+            {#each filteredPrograms as program, index}
               <tr>
                 <td>{index + 1}</td>
                 <td>{program.name}</td>
+                <td>{program.type === 'shs' ? 'Senior High' : 'College'}</td>
                 <td>{program.subjects ? program.subjects.join(', ') : 'None'}</td>
                 <td>{new Date(program.createdAt).toLocaleDateString()}</td>
                 <td>
@@ -274,9 +323,9 @@
                 </td>
               </tr>
             {/each}
-            {#if programs.filter(p => p.type === 'college').length === 0}
+            {#if filteredPrograms.length === 0}
               <tr>
-                <td colspan="5" class="empty-row">No college programs found. Click "Add Program" to create mappings for college courses.</td>
+                <td colspan="6" class="empty-row">No programs found. Click "Add Program" to create mappings.</td>
               </tr>
             {/if}
           </tbody>
@@ -294,25 +343,25 @@
           <button type="button" class="close-btn" onclick={() => { showForm = false; editingProgram = null; }} aria-label="Close modal">&times;</button>
         </div>
         <form onsubmit={(e) => { e.preventDefault(); editingProgram ? updateProgram() : addProgram(); }}>
-          <div class="form-group">
-            <label for="programName">Program Name *</label>
-            <input 
-              type="text" 
-              id="programName" 
-              placeholder="e.g., STEM, ABM, BSCS, BSIT" 
-              bind:value={programForm.name} 
-              required
-            />
+          <div class="form-section">
+            <h4>Program Information</h4>
+            <div class="form-grid">
+              <div>
+                <label for="programName">Program Name *</label>
+                <input id="programName" type="text" placeholder="e.g., STEM, ABM, BSCS, BSIT" bind:value={programForm.name} required>
+              </div>
+              <div>
+                <label for="programType">Program Type *</label>
+                <select id="programType" bind:value={programForm.type} required>
+                  <option value="shs">Senior High Strand</option>
+                  <option value="college">College Course</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="programType">Program Type *</label>
-            <select id="programType" bind:value={programForm.type} required>
-              <option value="shs">Senior High Strand</option>
-              <option value="college">College Course</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Matched Subjects *</label>
+
+          <div class="form-section">
+            <h4>Matched Subjects *</h4>
             <div class="subjects-grid">
               {#each subjects as subject}
                 <label class="subject-checkbox">
@@ -326,7 +375,8 @@
               {/each}
             </div>
           </div>
-          <div class="modal-actions">
+
+          <div class="form-actions">
             <button type="button" class="cancel-btn" onclick={() => { showForm = false; editingProgram = null; }}>Cancel</button>
             <button type="submit" class="submit-btn">{editingProgram ? 'Update Program' : 'Add Program'}</button>
           </div>
@@ -339,305 +389,126 @@
 <style>
   @import '../style.css';
 
-  .dashboard-btn {
-    background: white;
-    color: var(--brand);
-    border: 2px solid var(--brand);
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
+  /* Programs-specific column widths */
+  .data-table th:nth-child(1) {
+    width: 30px;
   }
 
-  .dashboard-btn:hover {
-    background: var(--brand);
-    color: white;
+  .data-table th:nth-child(2) {
+    width: 150px;
   }
 
-  .add-btn {
-    background: var(--brand);
-    color: white;
-    border: 2px solid var(--brand);
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
+  .data-table th:nth-child(3) {
+    width: 120px;
   }
 
-  .add-btn:hover {
-    background: var(--brand-hover);
-    border-color: var(--brand-hover);
+  .data-table th:nth-child(4) {
+    width: 200px;
   }
 
-  .logout-btn {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
+  .data-table th:nth-child(5) {
+    width: 120px;
   }
 
-  .logout-btn:hover {
-    background: #c82333;
-  }
-
-  .programs-container {
-    padding: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
-  }
-
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #e9ecef;
-  }
-
-  .header-content h1 {
-    margin: 0 0 5px 0;
-    color: var(--brand);
-    font-size: 2rem;
-  }
-
-  .breadcrumb {
-    font-size: 0.875rem;
-    color: #6c757d;
-  }
-
-  .breadcrumb a {
-    color: var(--brand);
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 10px;
-  }
-
-  .loading {
-    text-align: center;
-    padding: 40px;
-    font-size: 1.125rem;
-    color: #6c757d;
-  }
-
-  .table-section {
-    background: white;
-    border-radius: var(--radius);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    overflow: hidden;
-    margin-bottom: 30px;
-  }
-
-  .section-title {
-    margin: 0 0 15px 0;
-    color: var(--brand);
-    font-size: 1.5rem;
-    padding: 20px 20px 0 20px;
-  }
-
-  .table-container {
-    overflow-x: auto;
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .data-table th {
-    background: var(--brand);
-    color: white;
-    padding: 15px;
-    text-align: left;
-    font-weight: 600;
-  }
-
-  .data-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #dee2e6;
-  }
-
-  .data-table tr:hover {
-    background: #f8f9fa;
-  }
-
-  .empty-row {
-    text-align: center;
-    padding: 40px;
-    color: #6c757d;
-    font-style: italic;
-  }
-
-  .table-btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-right: 5px;
-  }
-
-  .edit-btn {
-    background: #007bff;
-    color: white;
-  }
-
-  .edit-btn:hover {
-    background: #0056b3;
-  }
-
-  .delete-btn {
-    background: #dc3545;
-    color: white;
-  }
-
-  .delete-btn:hover {
-    background: #c82333;
-  }
-
-  /* Modal styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .modal-content {
-    background: white;
-    padding: 30px;
-    border-radius: var(--radius);
-    width: 90%;
-    max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .modal-content h3 {
-    margin: 0 0 20px 0;
-    color: var(--brand);
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #6c757d;
-  }
-
-  .close-btn:hover {
-    color: #343a40;
-  }
-
-  .form-group {
-    margin-bottom: 20px;
-  }
-
-  .form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #343a40;
-  }
-
-  .form-group input,
-  .form-group select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 1rem;
-  }
-
-  .form-group input:focus,
-  .form-group select:focus {
-    outline: none;
-    border-color: var(--brand);
-    box-shadow: 0 0 0 3px rgba(3, 48, 71, 0.1);
+  .data-table th:nth-child(6) {
+    width: 80px;
   }
 
   .subjects-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 10px;
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
+    margin-top: 10px;
   }
 
   .subject-checkbox {
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    padding: 5px;
+    transition: background 0.2s;
+  }
+
+  .subject-checkbox:hover {
+    background: var(--surface-alt);
   }
 
   .subject-checkbox input {
-    width: auto;
     cursor: pointer;
   }
 
   .subject-checkbox span {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    color: var(--text-body);
   }
 
-  .modal-actions {
+  .form-section {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .form-section:last-child {
+    border-bottom: none;
+  }
+
+  .form-section h4 {
+    margin: 0 0 15px 0;
+    color: var(--brand);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .form-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #343a40;
+  }
+
+  .form-section input,
+  .form-section select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.875rem;
+  }
+
+  .form-section input:focus,
+  .form-section select:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(3, 48, 71, 0.1);
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 25px;
-  }
-
-  .cancel-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 10px 20px;
+    align-items: center;
+    justify-content: center;
     border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
+    transition: all 0.2s ease;
   }
 
-  .cancel-btn:hover {
-    background: #5a6268;
+  .close-btn:hover {
+    background: #f8f9fa;
+    color: #333;
   }
 
-  .submit-btn {
-    background: var(--brand);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
-  }
-
-  .submit-btn:hover {
-    background: var(--brand-hover);
+  .close-btn:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
   }
 </style>
