@@ -77,7 +77,6 @@
   let filters = $state({
     subject: '',
     yearLevel: '',
-    author: '',
     releaseDate: '',
     publishedDate: ''
   });
@@ -194,11 +193,6 @@
         return false;
       }
 
-      // Author filter
-      if (filters.author && book.author !== filters.author) {
-        return false;
-      }
-
       // Release date filter
       if (filters.releaseDate && book.releaseDate !== filters.releaseDate) {
         return false;
@@ -220,10 +214,6 @@
     return subjectOptions;
   }
 
-  function getUniqueAuthors() {
-    return [...new Set(books.map(b => b.author).filter(Boolean))].sort();
-  }
-
   function getUniqueDates() {
     return [...new Set(books.map(b => b.releaseDate).filter(Boolean))].sort().reverse();
   }
@@ -237,7 +227,6 @@
     filters = {
       subject: '',
       yearLevel: '',
-      author: '',
       releaseDate: '',
       publishedDate: ''
     };
@@ -377,7 +366,6 @@
     searchQuery;
     filters.subject;
     filters.yearLevel;
-    filters.author;
     filters.releaseDate;
     filters.publishedDate;
     books;
@@ -397,7 +385,7 @@
       <h1>Books Management</h1>
     </div>
     <div class="header-actions">
-      <button class="register-btn" onclick={() => goto('/dashboard')}>Return to Dashboard</button>
+      <button class="dashboard-btn" onclick={() => goto('/dashboard')}>Return to Dashboard</button>
       <button class="register-btn" onclick={() => goto('/dashboard/upload')}>Upload Book</button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
@@ -459,16 +447,6 @@
           </select>
         </div>
 
-        <div class="filter-group">
-          <label for="authorFilter">Author</label>
-          <select id="authorFilter" bind:value={filters.author}>
-            <option value="">All Authors</option>
-            {#each getUniqueAuthors() as author}
-              <option value={author}>{author}</option>
-            {/each}
-          </select>
-        </div>
-        
         <div class="filter-group">
           <label for="dateFilter">Release Date</label>
           <select id="dateFilter" bind:value={filters.releaseDate}>
@@ -711,22 +689,62 @@
 <style>
   @import '../style.css';
 
-  /* A header that is also a control: a button so it is reachable by keyboard,
-     styled to look like the heading it replaces. */
-  .sort-btn {
-    background: none;
-    border: none;
-    padding: 0;
-    font: inherit;
-    color: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
+  /* Book-specific column widths */
+  .data-table th:nth-child(1) {
+    width: 30px;
   }
 
-  .sort-btn:hover {
-    color: var(--brand);
-    text-decoration: underline;
+  .data-table th:nth-child(2) {
+    width: 70px;
+  }
+
+  .data-table th:nth-child(3) {
+    width: 150px;
+  }
+
+  .data-table th:nth-child(4) {
+    width: 120px;
+  }
+
+  .data-table th:nth-child(5) {
+    width: 80px;
+  }
+
+  .data-table th:nth-child(6) {
+    width: 70px;
+  }
+
+  .data-table th:nth-child(7) {
+    width: 70px;
+  }
+
+  .data-table th:nth-child(8) {
+    width: 70px;
+  }
+
+  .data-table th:nth-child(9) {
+    width: 180px;
+  }
+
+  .data-table th:nth-child(10) {
+    width: 80px;
+  }
+
+  .file-cell {
+    max-width: 180px;
+  }
+
+  .file-name-link {
+    font-size: 0.7rem;
+    word-break: break-all;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .file-meta {
+    font-size: 0.65rem;
+    gap: 4px;
+    flex-wrap: wrap;
   }
 
   .cover-row {
@@ -976,13 +994,71 @@
   }
 
   .data-table th:nth-child(1) {
-    width: 50px;
+    width: 40px;
     text-align: center;
   }
 
   .data-table td:nth-child(1) {
     text-align: center;
     font-weight: bold;
+  }
+
+  /* Book-specific column widths */
+  .data-table th:nth-child(1) {
+    width: 30px;
+  }
+
+  .data-table th:nth-child(2) {
+    width: 70px;
+  }
+
+  .data-table th:nth-child(3) {
+    width: 150px;
+  }
+
+  .data-table th:nth-child(4) {
+    width: 120px;
+  }
+
+  .data-table th:nth-child(5) {
+    width: 80px;
+  }
+
+  .data-table th:nth-child(6) {
+    width: 70px;
+  }
+
+  .data-table th:nth-child(7) {
+    width: 70px;
+  }
+
+  .data-table th:nth-child(8) {
+    width: 70px;
+  }
+
+  .data-table th:nth-child(9) {
+    width: 180px;
+  }
+
+  .data-table th:nth-child(10) {
+    width: 80px;
+  }
+
+  .file-cell {
+    max-width: 180px;
+  }
+
+  .file-name-link {
+    font-size: 0.7rem;
+    word-break: break-all;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .file-meta {
+    font-size: 0.65rem;
+    gap: 4px;
+    flex-wrap: wrap;
   }
 
   #edit-title,

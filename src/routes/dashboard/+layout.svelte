@@ -13,14 +13,14 @@
 
 <style>
   .gd-footer {
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 20px;
-    border-top: 2px solid #cccccc;
+    padding: 20px 15px;
+    border-top: 1px solid var(--border);
     text-align: center;
     font-family: Arial, sans-serif;
-    font-size: 13px;
-    color: #666666;
+    font-size: 0.875rem;
+    color: var(--text-muted);
     background: white;
   }
 

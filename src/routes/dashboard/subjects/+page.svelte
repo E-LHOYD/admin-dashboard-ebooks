@@ -4,12 +4,54 @@
   import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
+  import { sortRows, sortIndicator, ariaSort } from '$lib/sortTable';
 
   // Reactive state variables
   let subjects = $state([]);
   let loading = $state(true);
   let showForm = $state(false);
   let editingSubject = $state(null);
+
+  // Sorting
+  let sortKey = $state('');
+  let sortDir = $state('asc');
+
+  const SORT_COLUMNS = [
+    { key: 'name', label: 'Subject Name', value: (s) => s.name },
+    { key: 'createdAt', label: 'Created At', value: (s) => s.createdAt }
+  ];
+
+  function toggleSort(key) {
+    if (sortKey === key) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      return;
+    }
+    sortKey = key;
+    sortDir = 'asc';
+  }
+
+  let sortedSubjects = $derived.by(() => {
+    const column = SORT_COLUMNS.find((c) => c.key === sortKey);
+    return column ? sortRows(subjects, column.value, sortDir) : subjects;
+  });
+
+  // Search state
+  let searchQuery = $state('');
+
+  let filteredSubjects = $derived.by(() => {
+    return subjects.filter(subject => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const name = subject.name?.toLowerCase() || '';
+        
+        const matchesSearch = name.includes(query);
+        if (!matchesSearch) return false;
+      }
+
+      return true;
+    });
+  });
 
   // Subject form data
   let subjectForm = $state({
@@ -124,7 +166,7 @@
       <button class="dashboard-btn" onclick={() => goto('/dashboard')}>
         Return to Dashboard
       </button>
-      <button class="add-btn" onclick={() => { editingSubject = null; subjectForm = { name: '' }; showForm = true; }}>
+      <button class="register-btn" onclick={() => { editingSubject = null; subjectForm = { name: '' }; showForm = true; }}>
         Add Subject
       </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
@@ -134,6 +176,25 @@
   {#if loading}
     <div class="loading">Loading subjects...</div>
   {:else}
+    <!-- Filters Section -->
+    <section class="filters-section">
+      <div class="filters-container">
+        <div class="search-group">
+          <label for="subjectSearchInput">Search</label>
+          <input 
+            id="subjectSearchInput" 
+            type="text" 
+            placeholder="Search subject name" 
+            bind:value={searchQuery}
+          />
+        </div>
+
+        <div class="filter-actions">
+          <span class="results-count">Showing {filteredSubjects.length} of {subjects.length} subjects</span>
+        </div>
+      </div>
+    </section>
+
     <!-- Subjects Table -->
     <section class="table-section">
       <div class="table-container">
@@ -141,13 +202,18 @@
           <thead>
             <tr>
               <th>#</th>
-              <th>Subject Name</th>
-              <th>Created At</th>
+              {#each SORT_COLUMNS as column}
+                <th aria-sort={ariaSort(column.key, sortKey, sortDir)}>
+                  <button class="sort-btn" onclick={() => toggleSort(column.key)}>
+                    {column.label}{sortIndicator(column.key, sortKey, sortDir)}
+                  </button>
+                </th>
+              {/each}
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {#each subjects as subject, index}
+            {#each filteredSubjects as subject, index}
               <tr>
                 <td>{index + 1}</td>
                 <td>{subject.name}</td>
@@ -158,7 +224,7 @@
                 </td>
               </tr>
             {/each}
-            {#if subjects.length === 0}
+            {#if filteredSubjects.length === 0}
               <tr>
                 <td colspan="4" class="empty-row">No subjects found. Click "Add Subject" to create custom ones.</td>
               </tr>
@@ -178,17 +244,17 @@
           <button type="button" class="close-btn" onclick={() => { showForm = false; editingSubject = null; }} aria-label="Close modal">&times;</button>
         </div>
         <form onsubmit={(e) => { e.preventDefault(); editingSubject ? updateSubject() : addSubject(); }}>
-          <div class="form-group">
-            <label for="subjectName">Subject Name *</label>
-            <input 
-              type="text" 
-              id="subjectName" 
-              placeholder="e.g., Mathematics, Computer Science" 
-              bind:value={subjectForm.name} 
-              required
-            />
+          <div class="form-section">
+            <h4>Subject Information</h4>
+            <div class="form-grid">
+              <div>
+                <label for="subjectName">Subject Name *</label>
+                <input id="subjectName" type="text" placeholder="e.g., Mathematics, Computer Science" bind:value={subjectForm.name} required>
+              </div>
+            </div>
           </div>
-          <div class="modal-actions">
+
+          <div class="form-actions">
             <button type="button" class="cancel-btn" onclick={() => { showForm = false; editingSubject = null; }}>Cancel</button>
             <button type="submit" class="submit-btn">{editingSubject ? 'Update Subject' : 'Add Subject'}</button>
           </div>
@@ -201,267 +267,85 @@
 <style>
   @import '../style.css';
 
-  .dashboard-btn {
-    background: white;
-    color: var(--brand);
-    border: 2px solid var(--brand);
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
+  /* Subjects-specific column widths */
+  .data-table th:nth-child(1) {
+    width: 30px;
   }
 
-  .dashboard-btn:hover {
-    background: var(--brand);
-    color: white;
+  .data-table th:nth-child(2) {
+    width: 200px;
   }
 
-  .add-btn {
-    background: var(--brand);
-    color: white;
-    border: 2px solid var(--brand);
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
+  .data-table th:nth-child(3) {
+    width: 120px;
   }
 
-  .add-btn:hover {
-    background: var(--brand-hover);
-    border-color: var(--brand-hover);
+  .data-table th:nth-child(4) {
+    width: 80px;
   }
 
-  .logout-btn {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-  }
-
-  .logout-btn:hover {
-    background: #c82333;
-  }
-
-  .subjects-container {
-    padding: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
-  }
-
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #e9ecef;
-  }
-
-  .header-content h1 {
-    margin: 0 0 5px 0;
-    color: var(--brand);
-    font-size: 2rem;
-  }
-
-  .breadcrumb {
-    font-size: 0.875rem;
-    color: #6c757d;
-  }
-
-  .breadcrumb a {
-    color: var(--brand);
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 10px;
-  }
-
-  .loading {
-    text-align: center;
-    padding: 40px;
-    font-size: 1.125rem;
-    color: #6c757d;
-  }
-
-  .table-section {
-    background: white;
-    border-radius: var(--radius);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    overflow: hidden;
-  }
-
-  .table-container {
-    overflow-x: auto;
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .data-table th {
-    background: var(--brand);
-    color: white;
-    padding: 15px;
-    text-align: left;
-    font-weight: 600;
-  }
-
-  .data-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #dee2e6;
-  }
-
-  .data-table tr:hover {
-    background: #f8f9fa;
-  }
-
-  .empty-row {
-    text-align: center;
-    padding: 40px;
-    color: #6c757d;
-    font-style: italic;
-  }
-
-  .table-btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-right: 5px;
-  }
-
-  .edit-btn {
-    background: #007bff;
-    color: white;
-  }
-
-  .edit-btn:hover {
-    background: #0056b3;
-  }
-
-  .delete-btn {
-    background: #dc3545;
-    color: white;
-  }
-
-  .delete-btn:hover {
-    background: #c82333;
-  }
-
-  /* Modal styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .modal-content {
-    background: white;
-    padding: 30px;
-    border-radius: var(--radius);
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .modal-content h3 {
-    margin: 0 0 20px 0;
-    color: var(--brand);
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #6c757d;
-  }
-
-  .close-btn:hover {
-    color: #343a40;
-  }
-
-  .form-group {
+  .form-section {
     margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e9ecef;
   }
 
-  .form-group label {
-    display: block;
-    margin-bottom: 8px;
+  .form-section:last-child {
+    border-bottom: none;
+  }
+
+  .form-section h4 {
+    margin: 0 0 15px 0;
+    color: var(--brand);
+    font-size: 1rem;
     font-weight: 600;
+  }
+
+  .form-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 0.875rem;
     color: #343a40;
   }
 
-  .form-group input,
-  .form-group select {
+  .form-section input {
     width: 100%;
-    padding: 10px;
+    padding: 8px 12px;
     border: 1px solid #ced4da;
     border-radius: 4px;
-    font-size: 1rem;
+    font-size: 0.875rem;
   }
 
-  .form-group input:focus,
-  .form-group select:focus {
+  .form-section input:focus {
     outline: none;
     border-color: var(--brand);
     box-shadow: 0 0 0 3px rgba(3, 48, 71, 0.1);
   }
 
-  .modal-actions {
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 25px;
-  }
-
-  .cancel-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 10px 20px;
+    align-items: center;
+    justify-content: center;
     border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
+    transition: all 0.2s ease;
   }
 
-  .cancel-btn:hover {
-    background: #5a6268;
+  .close-btn:hover {
+    background: #f8f9fa;
+    color: #333;
   }
 
-  .submit-btn {
-    background: var(--brand);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
-  }
-
-  .submit-btn:hover {
-    background: var(--brand-hover);
+  .close-btn:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
   }
 </style>

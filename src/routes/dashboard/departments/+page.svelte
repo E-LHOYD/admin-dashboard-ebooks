@@ -6,6 +6,7 @@
   import { goto } from '$app/navigation';
   import { DEFAULT_SUBJECTS } from '$lib/subjects';
   import { DEPARTMENTS } from '$lib/users';
+  import { sortRows, sortIndicator, ariaSort } from '$lib/sortTable';
 
   // Reactive state variables
   let departmentMappings = $state([]);
@@ -13,6 +14,50 @@
   let loading = $state(true);
   let showForm = $state(false);
   let editingMapping = $state(null);
+  let searchQuery = $state('');
+
+  // Sorting
+  let sortKey = $state('');
+  let sortDir = $state('asc');
+
+  const SORT_COLUMNS = [
+    { key: 'department', label: 'Department', value: (m) => m.department },
+    { key: 'subjects', label: 'Matched Subjects', value: (m) => m.subjects?.join(', ') || '' },
+    { key: 'createdAt', label: 'Created At', value: (m) => m.createdAt }
+  ];
+
+  function toggleSort(key) {
+    if (sortKey === key) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      return;
+    }
+    sortKey = key;
+    sortDir = 'asc';
+  }
+
+  let filteredMappings = $derived.by(() => {
+    let result = departmentMappings.filter(mapping => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const department = mapping.department?.toLowerCase() || '';
+        const subjects = mapping.subjects?.join(', ').toLowerCase() || '';
+        
+        const matchesSearch = department.includes(query) || subjects.includes(query);
+        if (!matchesSearch) return false;
+      }
+
+      return true;
+    });
+
+    // Apply sorting
+    const column = SORT_COLUMNS.find((c) => c.key === sortKey);
+    return column ? sortRows(result, column.value, sortDir) : result;
+  });
+
+  function resetFilters() {
+    searchQuery = '';
+  }
 
   // Department mapping form data
   let mappingForm = $state({
@@ -180,17 +225,17 @@
   <header class="page-header">
     <div class="header-content">
       <div class="brand-line"><Logo /></div>
-      <h1>Teacher Departments Management</h1>
+      <h1>Departments Mapping</h1>
       <nav class="breadcrumb">
-        <a href="/dashboard">Dashboard</a> / Departments
+        <a href="/dashboard">Dashboard</a> / Departments Mapping
       </nav>
     </div>
     <div class="header-actions">
       <button class="dashboard-btn" onclick={() => goto('/dashboard')}>
         Return to Dashboard
       </button>
-      <button class="add-btn" onclick={() => { editingMapping = null; mappingForm = { department: '', subjects: [] }; showForm = true; }}>
-        Add Department Mapping
+      <button class="register-btn" onclick={() => { editingMapping = null; mappingForm = { department: '', subjects: [] }; showForm = true; }}>
+        Add Department
       </button>
       <button class="logout-btn" onclick={logout}>Logout</button>
     </div>
@@ -199,21 +244,44 @@
   {#if loading}
     <div class="loading">Loading department mappings...</div>
   {:else}
-    <!-- Department Mappings Table -->
+    <!-- Filters Section -->
+    <section class="filters-section">
+      <div class="filters-container">
+        <div class="search-group">
+          <label for="departmentSearchInput">Search</label>
+          <input 
+            id="departmentSearchInput" 
+            type="text" 
+            placeholder="Search department name" 
+            bind:value={searchQuery}
+          />
+        </div>
+
+        <div class="filter-actions">
+          <span class="results-count">Showing {filteredMappings.length} of {departmentMappings.length} department mappings</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Departments Mapping Table -->
     <section class="table-section">
       <div class="table-container">
         <table class="data-table">
           <thead>
             <tr>
               <th>#</th>
-              <th>Department</th>
-              <th>Matched Subjects</th>
-              <th>Created At</th>
+              {#each SORT_COLUMNS as column}
+                <th aria-sort={ariaSort(column.key, sortKey, sortDir)}>
+                  <button class="sort-btn" onclick={() => toggleSort(column.key)}>
+                    {column.label}{sortIndicator(column.key, sortKey, sortDir)}
+                  </button>
+                </th>
+              {/each}
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {#each departmentMappings as mapping, index}
+            {#each filteredMappings as mapping, index}
               <tr>
                 <td>{index + 1}</td>
                 <td>{mapping.department}</td>
@@ -225,9 +293,9 @@
                 </td>
               </tr>
             {/each}
-            {#if departmentMappings.length === 0}
+            {#if filteredMappings.length === 0}
               <tr>
-                <td colspan="5" class="empty-row">No department mappings found. Click "Add Department Mapping" to create custom mappings for teacher departments.</td>
+                <td colspan="5" class="empty-row">No department mappings found. Click "Add Department" to create custom mappings for teacher departments.</td>
               </tr>
             {/if}
           </tbody>
@@ -245,17 +313,23 @@
           <button type="button" class="close-btn" onclick={() => { showForm = false; editingMapping = null; }} aria-label="Close modal">&times;</button>
         </div>
         <form onsubmit={(e) => { e.preventDefault(); editingMapping ? updateDepartmentMapping() : addDepartmentMapping(); }}>
-          <div class="form-group">
-            <label for="department">Department *</label>
-            <select id="department" bind:value={mappingForm.department} required>
-              <option value="">Select Department</option>
-              {#each DEPARTMENTS as dept}
-                <option value={dept}>{dept}</option>
-              {/each}
-            </select>
+          <div class="form-section">
+            <h4>Department Information</h4>
+            <div class="form-grid">
+              <div>
+                <label for="department">Department *</label>
+                <select id="department" bind:value={mappingForm.department} required>
+                  <option value="">Select Department</option>
+                  {#each DEPARTMENTS as dept}
+                    <option value={dept}>{dept}</option>
+                  {/each}
+                </select>
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Matched Subjects *</label>
+
+          <div class="form-section">
+            <h4>Matched Subjects *</h4>
             <div class="subjects-grid">
               {#each subjects as subject}
                 <label class="subject-checkbox">
@@ -269,9 +343,10 @@
               {/each}
             </div>
           </div>
-          <div class="modal-actions">
+
+          <div class="form-actions">
             <button type="button" class="cancel-btn" onclick={() => { showForm = false; editingMapping = null; }}>Cancel</button>
-            <button type="submit" class="submit-btn">{editingMapping ? 'Update Mapping' : 'Add Mapping'}</button>
+            <button type="submit" class="submit-btn">{editingMapping ? 'Update Department' : 'Add Department'}</button>
           </div>
         </form>
       </div>
@@ -282,297 +357,122 @@
 <style>
   @import '../style.css';
 
-  .dashboard-btn {
-    background: white;
-    color: var(--brand);
-    border: 2px solid var(--brand);
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
+  /* Departments-specific column widths */
+  .data-table th:nth-child(1) {
+    width: 30px;
   }
 
-  .dashboard-btn:hover {
-    background: var(--brand);
-    color: white;
+  .data-table th:nth-child(2) {
+    width: 150px;
   }
 
-  .add-btn {
-    background: var(--brand);
-    color: white;
-    border: 2px solid var(--brand);
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
+  .data-table th:nth-child(3) {
+    width: 200px;
   }
 
-  .add-btn:hover {
-    background: var(--brand-hover);
-    border-color: var(--brand-hover);
+  .data-table th:nth-child(4) {
+    width: 120px;
   }
 
-  .logout-btn {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: bold;
-  }
-
-  .logout-btn:hover {
-    background: #c82333;
-  }
-
-  .departments-container {
-    padding: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
-  }
-
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #e9ecef;
-  }
-
-  .header-content h1 {
-    margin: 0 0 5px 0;
-    color: var(--brand);
-    font-size: 2rem;
-  }
-
-  .breadcrumb {
-    font-size: 0.875rem;
-    color: #6c757d;
-  }
-
-  .breadcrumb a {
-    color: var(--brand);
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 10px;
-  }
-
-  .loading {
-    text-align: center;
-    padding: 40px;
-    font-size: 1.125rem;
-    color: #6c757d;
-  }
-
-  .table-section {
-    background: white;
-    border-radius: var(--radius);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    overflow: hidden;
-  }
-
-  .table-container {
-    overflow-x: auto;
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .data-table th {
-    background: var(--brand);
-    color: white;
-    padding: 15px;
-    text-align: left;
-    font-weight: 600;
-  }
-
-  .data-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #dee2e6;
-  }
-
-  .data-table tr:hover {
-    background: #f8f9fa;
-  }
-
-  .empty-row {
-    text-align: center;
-    padding: 40px;
-    color: #6c757d;
-    font-style: italic;
-  }
-
-  .table-btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-right: 5px;
-  }
-
-  .edit-btn {
-    background: #007bff;
-    color: white;
-  }
-
-  .edit-btn:hover {
-    background: #0056b3;
-  }
-
-  .delete-btn {
-    background: #dc3545;
-    color: white;
-  }
-
-  .delete-btn:hover {
-    background: #c82333;
-  }
-
-  /* Modal styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .modal-content {
-    background: white;
-    padding: 30px;
-    border-radius: var(--radius);
-    width: 90%;
-    max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .modal-content h3 {
-    margin: 0 0 20px 0;
-    color: var(--brand);
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #6c757d;
-  }
-
-  .close-btn:hover {
-    color: #343a40;
-  }
-
-  .form-group {
-    margin-bottom: 20px;
-  }
-
-  .form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #343a40;
-  }
-
-  .form-group input,
-  .form-group select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 1rem;
-  }
-
-  .form-group input:focus,
-  .form-group select:focus {
-    outline: none;
-    border-color: var(--brand);
-    box-shadow: 0 0 0 3px rgba(3, 48, 71, 0.1);
+  .data-table th:nth-child(5) {
+    width: 80px;
   }
 
   .subjects-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 10px;
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
+    margin-top: 10px;
   }
 
   .subject-checkbox {
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    padding: 5px;
+    transition: background 0.2s;
+  }
+
+  .subject-checkbox:hover {
+    background: var(--surface-alt);
   }
 
   .subject-checkbox input {
-    width: auto;
     cursor: pointer;
   }
 
   .subject-checkbox span {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    color: var(--text-body);
   }
 
-  .modal-actions {
+  .form-section {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .form-section:last-child {
+    border-bottom: none;
+  }
+
+  .form-section h4 {
+    margin: 0 0 15px 0;
+    color: var(--brand);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .form-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #343a40;
+  }
+
+  .form-section input,
+  .form-section select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.875rem;
+  }
+
+  .form-section input:focus,
+  .form-section select:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(3, 48, 71, 0.1);
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 25px;
-  }
-
-  .cancel-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 10px 20px;
+    align-items: center;
+    justify-content: center;
     border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
+    transition: all 0.2s ease;
   }
 
-  .cancel-btn:hover {
-    background: #5a6268;
+  .close-btn:hover {
+    background: #f8f9fa;
+    color: #333;
   }
 
-  .submit-btn {
-    background: var(--brand);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
-  }
-
-  .submit-btn:hover {
-    background: var(--brand-hover);
+  .close-btn:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
   }
 </style>
