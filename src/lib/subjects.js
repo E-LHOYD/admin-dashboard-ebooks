@@ -1,3 +1,5 @@
+import { collection, getDocs } from 'firebase/firestore';
+
 // The fixed set of subject labels a book can carry. A book may have several.
 //
 // This is now managed dynamically through the admin dashboard subjects page.
@@ -18,6 +20,33 @@ export const DEFAULT_SUBJECTS = [
 
 // Default subjects export for backwards compatibility
 export const SUBJECTS = DEFAULT_SUBJECTS;
+
+/**
+ * Every subject in the Firestore `subjects` collection, sorted by name.
+ *
+ * No status filter is applied: every subject document is returned, so a
+ * subject added on the Subjects page shows up everywhere subjects are listed.
+ * Falls back to DEFAULT_SUBJECTS only when the collection is empty or fails.
+ * @param {import('firebase/firestore').Firestore} db
+ * @returns {Promise<string[]>}
+ */
+export async function loadAllSubjects(db) {
+	try {
+		const snap = await getDocs(collection(db, 'subjects'));
+		const names = [
+			...new Set(
+				snap.docs
+					.map((d) => d.data()?.name)
+					.filter((n) => typeof n === 'string' && n.trim())
+					.map((n) => n.trim())
+			)
+		].sort((a, b) => a.localeCompare(b));
+		return names.length ? names : DEFAULT_SUBJECTS;
+	} catch (error) {
+		console.error('Error loading subjects:', error);
+		return DEFAULT_SUBJECTS;
+	}
+}
 
 /**
  * The subjects a book carries, tolerating the older single-string field.

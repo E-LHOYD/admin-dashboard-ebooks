@@ -273,8 +273,8 @@
   let allSubjectsWithZeros = $derived.by(() => {
     const subjectMap = new Map();
 
-    // Initialize all subjects with zero counts
-    for (const subject of DEFAULT_SUBJECTS) {
+    // Initialize every subject (from the Subjects page) with zero counts
+    for (const subject of subjectNames.length ? subjectNames : DEFAULT_SUBJECTS) {
       subjectMap.set(subject, { label: subject, read: 0 });
     }
     

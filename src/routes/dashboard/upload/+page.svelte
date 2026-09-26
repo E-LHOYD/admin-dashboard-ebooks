@@ -5,7 +5,7 @@
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
   import { uploadBookFile, uploadCoverImage } from '$lib/uploadBook';
-  import { SUBJECTS } from '$lib/subjects';
+  import { DEFAULT_SUBJECTS, loadAllSubjects } from '$lib/subjects';
   import { YEAR_LEVEL_GROUPS } from '$lib/yearLevels';
   import {
     ACCEPTED_EXTENSIONS,
@@ -20,6 +20,10 @@
   } from '$lib/supabase';
 
   // Reactive state variables
+  // Every subject from the Subjects page, no status filter
+  let subjectOptions = $state(DEFAULT_SUBJECTS);
+  loadAllSubjects(db).then((names) => (subjectOptions = names));
+
   let uploading = $state(false);
   let errorMessage = $state('');
   let successMessage = $state('');
@@ -346,7 +350,7 @@
         <div class="form-group">
           <span class="field-label">Subjects *</span>
           <div class="subject-grid">
-            {#each SUBJECTS as subject}
+            {#each subjectOptions as subject}
               <label class="subject-option">
                 <input type="checkbox" value={subject} bind:group={bookForm.subjects} />
                 <span>{subject}</span>

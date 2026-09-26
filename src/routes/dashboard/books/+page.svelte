@@ -5,7 +5,7 @@
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
   import { uploadBookFile, uploadCoverImage } from '$lib/uploadBook';
-  import { SUBJECTS, bookSubjects, subjectsLabel, hasSubject } from '$lib/subjects';
+  import { DEFAULT_SUBJECTS, loadAllSubjects, bookSubjects, subjectsLabel, hasSubject } from '$lib/subjects';
   import {
     YEAR_LEVELS,
     YEAR_LEVEL_GROUPS,
@@ -25,6 +25,7 @@
   } from '$lib/supabase';
 
   // Reactive state variables
+  let subjectOptions = $state(DEFAULT_SUBJECTS);
   let books = $state([]);
   let filteredBooks = $state([]);
   let loading = $state(true);
@@ -216,7 +217,7 @@
   function getUniqueSubjects() {
     // The canonical list rather than whatever happens to be in the data, so a
     // subject with no books yet can still be filtered on.
-    return SUBJECTS;
+    return subjectOptions;
   }
 
   function getUniqueAuthors() {
@@ -385,6 +386,7 @@
 
   // Initialize on component mount
   loadBooks();
+  loadAllSubjects(db).then((names) => (subjectOptions = names));
 </script>
 
 <div class="dashboard-container">
@@ -646,7 +648,7 @@
           <div class="form-group">
             <span class="field-label">Subjects *</span>
             <div class="subject-grid">
-              {#each SUBJECTS as subject}
+              {#each subjectOptions as subject}
                 <label class="subject-option">
                   <input type="checkbox" value={subject} bind:group={bookForm.subjects} />
                   <span>{subject}</span>
