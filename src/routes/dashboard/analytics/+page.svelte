@@ -21,6 +21,7 @@
   // Raw collections
   let users = $state([]);
   let books = $state([]);
+  let deletedBooks = $state([]);
   let progress = $state([]);
   let customShelves = $state([]);
 
@@ -34,14 +35,16 @@
     loading = true;
     errorMessage = '';
     try {
-      const [userSnap, bookSnap, progressSnap] = await Promise.all([
+      const [userSnap, bookSnap, deletedBookSnap, progressSnap] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'books')),
+        getDocs(collection(db, 'deletedBooks')),
         getDocs(collection(db, 'readingProgress'))
       ]);
 
       users = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       books = bookSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      deletedBooks = deletedBookSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       progress = progressSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
       // Each of these only adds zero rows to a chart, so one failing to load is
@@ -114,6 +117,7 @@
 
   // ---------- headline figures ----------
   let booksById = $derived(new Map(books.map((b) => [b.id, b])));
+  let deletedBooksById = $derived(new Map(deletedBooks.map((b) => [b.bookId || b.id, b])));
   let readRecords = $derived(progress.filter((p) => p.status === 'read'));
 
   // ---------- reading frequency metrics ----------
@@ -500,16 +504,28 @@
   let showBooksModal = $state(false);
 
   let allBookRows = $derived.by(() => {
-    const map = new Map();
+    const map = new Map(
+      [...books, ...deletedBooks].map((book) => [
+        book.id,
+        {
+          label: book.title || 'Untitled book',
+          read: 0,
+          removed: !booksById.has(book.id)
+        }
+      ])
+    );
     for (const p of progress) {
       if (p.status !== 'read') continue;
-      const title = booksById.get(p.bookId)?.title || 'Removed book';
-      if (!map.has(title)) map.set(title, { label: title, read: 0 });
-      map.get(title).read++;
+      const book = booksById.get(p.bookId);
+      const archivedBook = deletedBooksById.get(p.bookId);
+      const removed = !book;
+      const title = book?.title || archivedBook?.title || p.bookTitle || 'Unknown title';
+      if (!map.has(p.bookId)) map.set(p.bookId, { label: title, read: 0, removed });
+      map.get(p.bookId).read++;
     }
     return [...map.values()]
       .map((r) => ({ ...r, total: r.read }))
-      .sort((a, b) => b.total - a.total);
+      .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label));
   });
 
   let bookRows = $derived(allBookRows.slice(0, BOOKS_PREVIEW));
@@ -882,16 +898,18 @@
       {/if}
     </section>
 
-    <!-- Most opened -->
+    <!-- Most read books -->
     <section class="section">
-      <h2>Most books read</h2>
+      <h2>Most Read Books</h2>
       {#if allBookRows.length === 0}
-        <p class="empty">No books have been read yet.</p>
+        <p class="empty">No books in the library yet.</p>
       {:else}
         <div class="bars">
           {#each bookRows as row}
             <div class="bar-row">
-              <div class="bar-label" title={row.label}>{row.label}</div>
+              <div class="bar-label" title={`${row.label}${row.removed ? ' (removed)' : ''}`}>
+                {row.label}{#if row.removed}<span class="removed-tag">Removed</span>{/if}
+              </div>
               <div class="bar-track">
                 {#if row.read}
                   <div class="seg s1" style="width:{(row.read / bookMax) * 100}%" title="{row.read} read"></div>
@@ -1001,7 +1019,9 @@
         <div class="bars">
           {#each allBookRows as row}
             <div class="bar-row">
-              <div class="bar-label" title={row.label}>{row.label}</div>
+              <div class="bar-label" title={`${row.label}${row.removed ? ' (removed)' : ''}`}>
+                {row.label}{#if row.removed}<span class="removed-tag">Removed</span>{/if}
+              </div>
               <div class="bar-track">
                 {#if row.read}
                   <div class="seg s1" style="width:{(row.read / bookMax) * 100}%" title="{row.read} read"></div>
@@ -1257,6 +1277,19 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .removed-tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: #f3e8e8;
+    color: #9b2c2c;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.3;
+    vertical-align: middle;
   }
 
   .bar-track { display: flex; gap: 2px; height: 14px; }
