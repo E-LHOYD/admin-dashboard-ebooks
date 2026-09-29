@@ -21,7 +21,6 @@
   // Raw collections
   let users = $state([]);
   let books = $state([]);
-  let deletedBooks = $state([]);
   let progress = $state([]);
   let customShelves = $state([]);
 
@@ -35,16 +34,14 @@
     loading = true;
     errorMessage = '';
     try {
-      const [userSnap, bookSnap, deletedBookSnap, progressSnap] = await Promise.all([
+      const [userSnap, bookSnap, progressSnap] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'books')),
-        getDocs(collection(db, 'deletedBooks')),
         getDocs(collection(db, 'readingProgress'))
       ]);
 
       users = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       books = bookSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      deletedBooks = deletedBookSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       progress = progressSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
       // Each of these only adds zero rows to a chart, so one failing to load is
@@ -117,7 +114,6 @@
 
   // ---------- headline figures ----------
   let booksById = $derived(new Map(books.map((b) => [b.id, b])));
-  let deletedBooksById = $derived(new Map(deletedBooks.map((b) => [b.bookId || b.id, b])));
   let readRecords = $derived(progress.filter((p) => p.status === 'read'));
 
   // ---------- reading frequency metrics ----------
@@ -284,23 +280,40 @@
   let showActiveReadersModal = $state(false);
   const ACTIVE_READERS_PREVIEW = 7;
   let activeReadersPreview = $derived(activeByDay.slice(-ACTIVE_READERS_PREVIEW));
-  let activeReadersFilter = $state('newest'); // 'newest', 'oldest', 'most-read', 'least-read'
   
-  let filteredActiveReaders = $derived.by(() => {
-    const sorted = [...activeByDay];
-    switch (activeReadersFilter) {
-      case 'newest':
-        return sorted.sort((a, b) => b.day.localeCompare(a.day));
-      case 'oldest':
-        return sorted.sort((a, b) => a.day.localeCompare(b.day));
-      case 'most-read':
-        return sorted.sort((a, b) => b.count - a.count || a.day.localeCompare(b.day));
-      case 'least-read':
-        return sorted.sort((a, b) => a.count - b.count || a.day.localeCompare(b.day));
-      default:
-        return sorted;
+  // Month view: last 30 days for the main chart
+  let activeByDayMonth = $derived(activeByDay.slice(-30));
+  let peakActiveMonth = $derived(Math.max(1, ...activeByDayMonth.map((d) => d.count)));
+  
+  // Organize data by year and month for the modal
+  let activeByYearMonth = $derived.by(() => {
+    const grouped = new Map();
+    
+    for (const d of activeByDay) {
+      const year = d.day.slice(0, 4);
+      const month = d.day.slice(5, 7);
+      const monthName = new Date(parseInt(year), parseInt(month) - 1).toLocaleString('default', { month: 'long' });
+      
+      if (!grouped.has(year)) {
+        grouped.set(year, new Map());
+      }
+      if (!grouped.get(year).has(month)) {
+        grouped.get(year).set(month, { 
+          name: monthName, 
+          days: [],
+          peak: 0 
+        });
+      }
+      
+      const monthData = grouped.get(year).get(month);
+      monthData.days.push(d);
+      monthData.peak = Math.max(monthData.peak, d.count);
     }
+    
+    return grouped;
   });
+  
+
 
   // ---------- subjects ----------
   const SUBJECTS_PREVIEW = 5;
@@ -505,22 +518,21 @@
 
   let allBookRows = $derived.by(() => {
     const map = new Map(
-      [...books, ...deletedBooks].map((book) => [
+      books.map((book) => [
         book.id,
         {
           label: book.title || 'Untitled book',
           read: 0,
-          removed: !booksById.has(book.id)
+          removed: false
         }
       ])
     );
     for (const p of progress) {
       if (p.status !== 'read') continue;
       const book = booksById.get(p.bookId);
-      const archivedBook = deletedBooksById.get(p.bookId);
-      const removed = !book;
-      const title = book?.title || archivedBook?.title || p.bookTitle || 'Unknown title';
-      if (!map.has(p.bookId)) map.set(p.bookId, { label: title, read: 0, removed });
+      // Only count progress for books that still exist in the library
+      if (!book) continue;
+      if (!map.has(p.bookId)) map.set(p.bookId, { label: book.title || 'Untitled book', read: 0, removed: false });
       map.get(p.bookId).read++;
     }
     return [...map.values()]
@@ -648,28 +660,33 @@
           <svg viewBox="0 0 720 200" role="img" aria-label="Active readers per day over time">
             {#each [0, 0.5, 1] as g}
               <line class="grid" x1="40" x2="710" y1={20 + g * 140} y2={20 + g * 140} />
-              <text class="axis" x="32" y={24 + g * 140} text-anchor="end">{Math.round(peakActive * (1 - g))}</text>
+              <text class="axis" x="32" y={24 + g * 140} text-anchor="end">{Math.round(peakActiveMonth * (1 - g))}</text>
             {/each}
             <polyline
               class="line"
-              points={activeByDay
-                .map((d, i) => `${40 + (i * 670) / Math.max(1, activeByDay.length - 1)},${160 - (d.count / peakActive) * 140}`)
+              points={activeByDayMonth
+                .map((d, i) => `${40 + (i * 670) / Math.max(1, activeByDayMonth.length - 1)},${160 - (d.count / peakActiveMonth) * 140}`)
                 .join(' ')}
             />
-            {#each activeByDay as d, i}
+            {#each activeByDayMonth as d, i}
               <circle
                 class="dot"
-                cx={40 + (i * 670) / Math.max(1, activeByDay.length - 1)}
-                cy={160 - (d.count / peakActive) * 140}
+                cx={40 + (i * 670) / Math.max(1, activeByDayMonth.length - 1)}
+                cy={160 - (d.count / peakActiveMonth) * 140}
                 r="4"
               ><title>{d.day}: {d.count} reader{d.count === 1 ? '' : 's'}</title></circle>
             {/each}
-            <text class="axis" x="40" y="185">{activeByDay[0]?.day.slice(5)}</text>
-            <text class="axis" x="710" y="185" text-anchor="end">{activeByDay.at(-1)?.day.slice(5)}</text>
+            <text class="axis" x="40" y="185">{activeByDayMonth[0]?.day.slice(5)}</text>
+            <text class="axis" x="710" y="185" text-anchor="end">{activeByDayMonth.at(-1)?.day.slice(5)}</text>
           </svg>
         </div>
+        {#if activeByDay.length > 30}
+          <button class="more-btn" onclick={() => showActiveReadersModal = true}>
+            Show all ({activeByDay.length} days)
+          </button>
+        {/if}
         <p class="note">
-          Counted from when the app was last opened, or when reading progress was
+          Showing last 30 days. Counted from when the app was last opened, or when reading progress was
           last saved for anyone who read before the app began recording that.
         </p>
       {/if}
@@ -907,8 +924,8 @@
         <div class="bars">
           {#each bookRows as row}
             <div class="bar-row">
-              <div class="bar-label" title={`${row.label}${row.removed ? ' (removed)' : ''}`}>
-                {row.label}{#if row.removed}<span class="removed-tag">Removed</span>{/if}
+              <div class="bar-label" title={row.label}>
+                {row.label}
               </div>
               <div class="bar-track">
                 {#if row.read}
@@ -1019,8 +1036,8 @@
         <div class="bars">
           {#each allBookRows as row}
             <div class="bar-row">
-              <div class="bar-label" title={`${row.label}${row.removed ? ' (removed)' : ''}`}>
-                {row.label}{#if row.removed}<span class="removed-tag">Removed</span>{/if}
+              <div class="bar-label" title={row.label}>
+                {row.label}
               </div>
               <div class="bar-track">
                 {#if row.read}
@@ -1064,29 +1081,49 @@
   <!-- Active Readers Modal -->
   {#if showActiveReadersModal}
     <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="active-readers-modal-title" onclick={(e) => { if (e.target === e.currentTarget) showActiveReadersModal = false; }}>
-      <div class="modal-content">
+      <div class="modal-content modal-large">
         <div class="modal-header">
-          <h3 id="active-readers-modal-title">Active Readers Per Day ({activeByDay.length} days)</h3>
+          <h3 id="active-readers-modal-title">Active Readers Per Day (Full History - {activeByDay.length} days)</h3>
           <button class="close-btn" onclick={() => showActiveReadersModal = false} aria-label="Close modal">&times;</button>
         </div>
-        <div class="modal-filters">
-          <button class="filter-btn" class:active={activeReadersFilter === 'newest'} onclick={() => activeReadersFilter = 'newest'}>Newest</button>
-          <button class="filter-btn" class:active={activeReadersFilter === 'oldest'} onclick={() => activeReadersFilter = 'oldest'}>Oldest</button>
-          <button class="filter-btn" class:active={activeReadersFilter === 'most-read'} onclick={() => activeReadersFilter = 'most-read'}>Most Read</button>
-          <button class="filter-btn" class:active={activeReadersFilter === 'least-read'} onclick={() => activeReadersFilter = 'least-read'}>Least Read</button>
-        </div>
-        <div class="modal-table">
-          <table class="data-table">
-            <thead><tr><th>Day</th><th>Readers</th></tr></thead>
-            <tbody>
-              {#each filteredActiveReaders as d}
-                <tr>
-                  <td>{d.day}</td>
-                  <td>{d.count}</td>
-                </tr>
+        <div class="modal-charts">
+          {#each [...activeByYearMonth.entries()].sort((a, b) => b[0].localeCompare(a[0])) as [year, months]}
+            <div class="year-section">
+              <h4 class="year-header">{year}</h4>
+              {#each [...months.entries()].sort((a, b) => b[0].localeCompare(a[0])) as [month, data]}
+                <div class="month-section">
+                  <div class="month-header">
+                    <span class="month-name">{data.name}</span>
+                    <span class="month-stats">{data.days.length} days, peak: {data.peak} readers</span>
+                  </div>
+                  <div class="month-chart">
+                    <svg viewBox="0 0 400 80" role="img" aria-label="Active readers for {data.name} {year}">
+                      {#each [0, 0.5, 1] as g}
+                        <line class="grid" x1="30" x2="390" y1={10 + g * 40} y2={10 + g * 40} />
+                        <text class="axis" x="24" y={13 + g * 40} text-anchor="end">{Math.round(data.peak * (1 - g))}</text>
+                      {/each}
+                      <polyline
+                        class="line"
+                        points={data.days
+                          .map((d, i) => `${30 + (i * 360) / Math.max(1, data.days.length - 1)},${50 - (d.count / data.peak) * 40}`)
+                          .join(' ')}
+                      />
+                      {#each data.days as d, i}
+                        <circle
+                          class="dot"
+                          cx={30 + (i * 360) / Math.max(1, data.days.length - 1)}
+                          cy={50 - (d.count / data.peak) * 40}
+                          r="3"
+                        ><title>{d.day}: {d.count} reader{d.count === 1 ? '' : 's'}</title></circle>
+                      {/each}
+                      <text class="axis" x="30" y="70">{data.days[0]?.day.slice(8)}</text>
+                      <text class="axis" x="390" y="70" text-anchor="end">{data.days.at(-1)?.day.slice(8)}</text>
+                    </svg>
+                  </div>
+                </div>
               {/each}
-            </tbody>
-          </table>
+            </div>
+          {/each}
         </div>
       </div>
     </div>
@@ -1134,36 +1171,6 @@
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-  }
-
-  .modal-filters {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
-
-  .filter-btn {
-    background: none;
-    color: var(--text-secondary);
-    border: 1px solid var(--grid);
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .filter-btn:hover {
-    background: var(--surface-1);
-    color: var(--text-primary);
-  }
-
-  .filter-btn.active {
-    background: var(--series-1);
-    color: white;
-    border-color: var(--series-1);
   }
 
   .more-btn:hover {
@@ -1279,19 +1286,6 @@
     white-space: nowrap;
   }
 
-  .removed-tag {
-    display: inline-block;
-    margin-left: 6px;
-    padding: 1px 5px;
-    border-radius: 999px;
-    background: #f3e8e8;
-    color: #9b2c2c;
-    font-size: 10px;
-    font-weight: 600;
-    line-height: 1.3;
-    vertical-align: middle;
-  }
-
   .bar-track { display: flex; gap: 2px; height: 14px; }
 
   .seg { border-radius: 0 4px 4px 0; min-width: 2px; transition: opacity 0.15s ease; }
@@ -1332,6 +1326,10 @@
     overflow-y: auto;
   }
 
+  .modal-large {
+    max-width: 900px;
+  }
+
   .modal-content .bars {
     max-height: 60vh;
     overflow-y: auto;
@@ -1340,6 +1338,60 @@
   .modal-table {
     max-height: 60vh;
     overflow-y: auto;
+  }
+
+  .modal-charts {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .year-section {
+    margin-bottom: 30px;
+  }
+
+  .year-header {
+    color: var(--text-heading);
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .month-section {
+    margin-bottom: 20px;
+  }
+
+  .month-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .month-name {
+    color: var(--text-heading);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .month-stats {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  .month-chart {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px;
+    box-shadow: var(--shadow);
+  }
+
+  .month-chart svg {
+    width: 100%;
+    height: auto;
+    display: block;
   }
 
   .clickable {

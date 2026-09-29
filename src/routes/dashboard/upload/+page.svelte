@@ -141,7 +141,7 @@
         query(collection(db, 'books'), where('bookNumber', '==', bookNumber), limit(1))
       );
       if (!clash.empty) {
-        errorMessage = `Book number ${bookNumber} is already used by "${clash.docs[0].data().title}".`;
+        errorMessage = `ISBN ${bookNumber} is already used by "${clash.docs[0].data().title}".`;
         return;
       }
 
@@ -331,7 +331,7 @@
 
         <!-- Book Details -->
         <div class="form-group">
-          <label class="field-label" for="book-number">Book number *</label>
+          <label class="field-label" for="book-number">ISBN *</label>
           <input id="book-number" type="text" bind:value={bookForm.bookNumber} required />
           <p class="field-hint">The library's own number for this book. Each book needs a different one.</p>
         </div>

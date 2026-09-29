@@ -143,7 +143,7 @@
     <!-- Logo/Brand Section -->
     <div class="text-center mb-8">
       <div class="flex justify-center mb-4"><Logo label={false} size="large" /></div>
-      <h1 class="text-xl font-bold text-gray-900 mb-2">GD-Library Admin Portal</h1>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">GD-Library Admin Portal</h1>
       <p class="text-gray-600 text-sm">Admin Login</p>
     </div>
     
