@@ -1,7 +1,7 @@
 <script>
   import Logo from '$lib/components/Logo.svelte';
   import { auth, db } from '$lib/firebase';
-  import { collection, doc, updateDoc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
+  import { collection, doc, updateDoc, getDocs, query, orderBy, writeBatch } from 'firebase/firestore';
   import { signOut } from 'firebase/auth';
   import { goto } from '$app/navigation';
   import { uploadBookFile, uploadCoverImage } from '$lib/uploadBook';
@@ -334,10 +334,19 @@
   }
 
   // Delete book
-  async function deleteBook(bookId) {
+  async function deleteBook(book) {
     if (confirm('Are you sure you want to delete this book?')) {
       try {
-        await deleteDoc(doc(db, 'books', bookId));
+        const batch = writeBatch(db);
+        batch.set(doc(db, 'deletedBooks', book.id), {
+          bookId: book.id,
+          title: book.title || 'Untitled book',
+          author: book.author || '',
+          bookNumber: book.bookNumber || '',
+          deletedAt: new Date()
+        });
+        batch.delete(doc(db, 'books', book.id));
+        await batch.commit();
         await loadBooks(); // Refresh data and apply filters
       } catch (error) {
         console.error('Error deleting book:', error);
@@ -519,7 +528,7 @@
                 </td>
                 <td>
                   <button class="table-btn edit-btn" onclick={() => editBook(book)}>Edit</button>
-                  <button class="table-btn delete-btn" onclick={() => deleteBook(book.id)}>Delete</button>
+                  <button class="table-btn delete-btn" onclick={() => deleteBook(book)}>Delete</button>
                 </td>
               </tr>
             {/each}

@@ -271,10 +271,9 @@
         <a href="/dashboard/studentlist" class="management-card">
           <div class="card-icon">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              <path d="M22 10 12 5 2 10l10 5 10-5z"></path>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+              <path d="M22 10v6"></path>
             </svg>
           </div>
           <h3>Students Management</h3>
@@ -323,8 +322,8 @@
         <a href="/dashboard/subjects" class="management-card">
           <div class="card-icon">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+              <line x1="7" y1="7" x2="7.01" y2="7"></line>
             </svg>
           </div>
           <h3>Subjects Management</h3>
@@ -340,6 +339,10 @@
               <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               <path d="M22 10v6"></path>
             </svg>
+            <svg class="mapping-indicator" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 3h5v5"></path>
+              <path d="M4 20L21 3"></path>
+            </svg>
           </div>
           <h3>Programs Mapping</h3>
           <p>Map student programs to subjects</p>
@@ -353,6 +356,10 @@
               <path d="M2 3h20"></path>
               <path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"></path>
               <path d="m7 21 5-5 5 5"></path>
+            </svg>
+            <svg class="mapping-indicator" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 3h5v5"></path>
+              <path d="M4 20L21 3"></path>
             </svg>
           </div>
           <h3>Departments Mapping</h3>
@@ -378,7 +385,7 @@
   .user-info {
     color: var(--text-muted);
     margin: 5px 0 0 0;
-    font-size: 0.875rem;
+    font-size: 1.25rem;
   }
 
   .management-grid {
@@ -441,5 +448,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 2px;
+  }
+
+  .mapping-indicator {
+    color: var(--brand);
+    opacity: 0.7;
   }
 </style>

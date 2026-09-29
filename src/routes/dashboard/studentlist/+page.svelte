@@ -586,7 +586,6 @@
                 <label for="activityStatus">Activity Status *</label>
                 <select id="activityStatus" bind:value={studentForm.activityStatus} required>
                   <option value="Active">Active</option>
-                  <option value="Graduated">Graduated</option>
                   <option value="Inactive">Inactive</option>
                 </select>
               </div>
