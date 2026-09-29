@@ -45,7 +45,7 @@
   let sortDir = $state('asc');
 
   const SORT_COLUMNS = [
-    { key: 'bookNumber', label: 'Book No.', value: (b) => b.bookNumber },
+    { key: 'bookNumber', label: 'ISBN', value: (b) => b.bookNumber },
     { key: 'title', label: 'Title', value: (b) => b.title },
     { key: 'author', label: 'Author', value: (b) => b.author },
     { key: 'subject', label: 'Subject', value: (b) => subjectsLabel(b) },
@@ -296,7 +296,7 @@
       if (bookNumber) {
         const clash = books.find((b) => b.id !== editingBook.id && String(b.bookNumber ?? '').trim() === bookNumber);
         if (clash) {
-          errorMessage = `Book number ${bookNumber} is already used by "${clash.title}".`;
+          errorMessage = `ISBN ${bookNumber} is already used by "${clash.title}".`;
           return;
         }
       }
@@ -422,7 +422,7 @@
           <input 
             id="searchInput" 
             type="text" 
-            placeholder="Search book number, title, author, or subject" 
+            placeholder="Search ISBN, title, author, or subject" 
             bind:value={searchQuery}
           />
         </div>
@@ -608,7 +608,7 @@
           </div>
 
           <div class="form-group">
-            <label class="field-label" for="edit-book-number">Book number</label>
+            <label class="field-label" for="edit-book-number">ISBN</label>
             <input id="edit-book-number" type="text" bind:value={bookForm.bookNumber} />
             <p class="field-hint">Each book needs a different number.</p>
           </div>
